@@ -62,7 +62,13 @@ export function QuickActions() {
           <View style={styles.icon}>
             <Icon size={iconSize.lg} color={colors[color]} strokeWidth={2} />
           </View>
-          <AppText variant="caption" align="center" numberOfLines={1} maxFontSizeMultiplier={1.2}>
+          <AppText
+            variant="caption"
+            align="center"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            maxFontSizeMultiplier={1.2}>
             {label}
           </AppText>
         </PressableScale>
@@ -87,7 +93,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xxs,
   },
   icon: {
     width: layout.iconTile,
