@@ -94,8 +94,6 @@ export default function HomeScreen() {
       <View style={styles.body}>
         <QuickActions />
         <ClinicStatusLine />
-        <DemoNotice />
-
         {next ? (
           <View style={styles.section}>
             <SectionHeader title={t.home.nextAppointment} />
@@ -108,6 +106,8 @@ export default function HomeScreen() {
             />
           </View>
         ) : null}
+
+        <DemoNotice />
 
         <View style={styles.section}>
           <SectionHeader

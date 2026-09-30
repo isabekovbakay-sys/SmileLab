@@ -10,7 +10,8 @@ import { DemoNotice } from '@/components/domain/DemoNotice';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { CalendarDays, Check, House, Stethoscope } from '@/components/ui/icons';
+import { IconButton } from '@/components/ui/IconButton';
+import { CalendarDays, Check, Stethoscope, Users, X } from '@/components/ui/icons';
 import { StickyFooter } from '@/components/ui/StickyFooter';
 import { useDoctors, useServices } from '@/hooks/useClinicData';
 import { useToday } from '@/hooks/useToday';
@@ -73,6 +74,9 @@ export default function BookingSuccessScreen() {
 
   return (
     <View style={styles.screen}>
+      <View style={[styles.close, { top: insets.top + spacing.xs }]}>
+        <IconButton icon={X} accessibilityLabel={t.common.toHome} onPress={goHome} testID="success-close" />
+      </View>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xxl }]}
         showsVerticalScrollIndicator={false}>
@@ -104,7 +108,7 @@ export default function BookingSuccessScreen() {
                 </AppText>
               </View>
               <View style={styles.cardRow}>
-                <CalendarDays size={iconSize.md} color={colors.hero} />
+                <Users size={iconSize.md} color={colors.hero} />
                 <AppText variant="body" style={styles.flex}>
                   {doctorLabel(i18n, appointment, doctor)}
                 </AppText>
@@ -126,25 +130,14 @@ export default function BookingSuccessScreen() {
             onPress={sendAgain}
           />
         ) : null}
-        <View style={styles.footerRow}>
-          <Button
-            testID="success-appointments"
-            label={t.booking.success.myAppointments}
-            icon={CalendarDays}
-            variant="secondary"
-            size="md"
-            style={styles.flex}
-            onPress={() => router.dismissTo('/appointments')}
-          />
-          <Button
-            label={t.common.toHome}
-            icon={House}
-            variant="secondary"
-            size="md"
-            style={styles.flex}
-            onPress={goHome}
-          />
-        </View>
+        <Button
+          testID="success-appointments"
+          label={t.booking.success.myAppointments}
+          icon={CalendarDays}
+          variant={mode === 'api' ? 'accent' : 'secondary'}
+          size={mode === 'api' ? 'lg' : 'md'}
+          onPress={() => router.dismissTo('/appointments')}
+        />
       </StickyFooter>
     </View>
   );
@@ -189,8 +182,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-  footerRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
+  close: {
+    position: 'absolute',
+    right: spacing.xs,
+    zIndex: 1,
   },
 });

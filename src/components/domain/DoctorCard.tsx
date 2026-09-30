@@ -30,7 +30,7 @@ export function DoctorCard({ doctor, onPress }: { doctor: Doctor; onPress: () =>
       </View>
       <View style={styles.langs}>
         <Languages size={iconSize.sm} color={colors.hero} />
-        <AppText variant="caption" color="textSecondary" numberOfLines={1} style={styles.langText}>
+        <AppText variant="caption" color="textSecondary" numberOfLines={2} style={styles.langText}>
           {t.languages.speaks(doctor.languages)}
         </AppText>
       </View>
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   },
   langs: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.xxs + 2,
   },
   langText: {

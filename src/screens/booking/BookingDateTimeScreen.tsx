@@ -137,7 +137,7 @@ export default function BookingDateTimeScreen() {
 
   const subtitle = isReschedule
     ? draft.original
-      ? t.booking.rescheduleCurrent(fmt.relativeDateTime(draft.original.date, draft.original.time, today))
+      ? t.booking.rescheduleCurrent(fmt.dateTime(draft.original.date, draft.original.time))
       : undefined
     : service
       ? `${l(service.name)} · ${fmt.price(service.priceFrom)}`
@@ -157,7 +157,7 @@ export default function BookingDateTimeScreen() {
           !selectionLabel
             ? t.booking.selectTime
             : isReschedule
-              ? t.booking.rescheduleTo(selectionLabel)
+              ? t.booking.rescheduleTo(fmt.dateTime(selectedDate ?? '', selectedTime ?? ''))
               : t.common.continue
         }
         iconRight={selectionLabel && !isReschedule ? ArrowRight : undefined}

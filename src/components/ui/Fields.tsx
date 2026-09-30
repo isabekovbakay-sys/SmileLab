@@ -1,5 +1,5 @@
 import { useState, type Ref } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, StyleSheet, TextInput, View, type TextInputProps, type TextStyle } from 'react-native';
 
 import { colors, fontFamily, iconSize, layout, radius, spacing, typography } from '@/theme';
 import { formatNationalPhone, normalizeKgPhone } from '@/utils/phone';
@@ -76,7 +76,7 @@ export function TextField({
             setFocused(false);
             onBlur?.(e);
           }}
-          style={[inputType, styles.input, multiline ? styles.inputMultiline : null]}
+          style={[inputType, styles.input, multiline ? styles.inputMultiline : null, webInput]}
         />
       </View>
       {error ? (
@@ -116,6 +116,9 @@ export function PhoneField({ value, onChangeNational, ...rest }: PhoneFieldProps
     />
   );
 }
+
+/** В web у TextInput своя обводка браузера — рамку фокуса рисует поле. */
+const webInput = (Platform.OS === 'web' ? { outlineStyle: 'none' } : null) as TextStyle | null;
 
 const styles = StyleSheet.create({
   wrapper: {

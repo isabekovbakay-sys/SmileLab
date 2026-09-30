@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingLeft: '22%',
   },
   second: {
     position: 'absolute',

@@ -109,7 +109,7 @@ export default function ServiceScreen() {
                 <AppText variant="caption" color="textSecondary">
                   {t.service.price}
                 </AppText>
-                <AppText variant="h3">
+                <AppText variant="title">
                   {data.priceFrom === null ? t.common.priceOnConsultation : t.common.priceFrom(data.priceFrom)}
                 </AppText>
               </Card>
@@ -119,7 +119,7 @@ export default function ServiceScreen() {
                 </AppText>
                 <View style={styles.factRow}>
                   <Clock size={iconSize.md} color={colors.hero} />
-                  <AppText variant="h3">{t.common.duration(data.durationMin)}</AppText>
+                  <AppText variant="title">{t.common.duration(data.durationMin)}</AppText>
                 </View>
               </Card>
             </View>
@@ -230,7 +230,7 @@ export default function ServiceScreen() {
               icon={askChannel === 'whatsapp' ? WhatsAppGlyph : TelegramGlyph}
               variant="secondary"
               style={styles.footerAsk}
-              accessibilityLabel={`${t.service.ask}: ${askChannel === 'whatsapp' ? 'WhatsApp' : 'Telegram'}`}
+              accessibilityLabel={t.service.askA11y(askChannel === 'whatsapp' ? 'WhatsApp' : 'Telegram')}
               onPress={() =>
                 askChannel === 'whatsapp'
                   ? contact.whatsapp(t.service.askMessage(name))
@@ -387,6 +387,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   footerBook: {
-    flex: 1.3,
+    flex: 1.25,
+    paddingHorizontal: spacing.sm,
   },
 });

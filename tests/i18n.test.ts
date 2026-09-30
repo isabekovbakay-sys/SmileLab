@@ -84,6 +84,7 @@ describe('склонения и кыргызская грамматика', () =
     assert.equal(kyTime('09:30', 'loc'), '09:30да');
     assert.equal(kyTime('20:00', 'abl'), '20:00дан');
     assert.equal(ky.home.status.openUntil('19:00'), 'Бүгүн 19:00га чейин ачыкпыз');
+    assert.equal(ru.home.status.opensTomorrow('09:00'), 'Сейчас закрыто · откроемся завтра в\u00A009:00');
   });
 
   it('даты: «30 сентября» / «30-сентябрь», относительные', () => {

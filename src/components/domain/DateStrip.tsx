@@ -27,7 +27,8 @@ export function DateStrip({ days, selected, today, onSelect }: DateStripProps) {
 
   useEffect(() => {
     if (selectedIndex < 0) return;
-    scrollRef.current?.scrollTo({ x: Math.max(0, selectedIndex * (DAY_WIDTH + GAP) - DAY_WIDTH), animated: true });
+    const x = selectedIndex < 3 ? 0 : (selectedIndex - 1) * (DAY_WIDTH + GAP);
+    scrollRef.current?.scrollTo({ x, animated: true });
   }, [selectedIndex]);
 
   return (
