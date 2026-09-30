@@ -1,0 +1,54 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Проверки (типы, линтер, тесты)
+        run: npm run check
+
+      - name: Нативный проект Android
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Сборка APK (release)
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Разрешения в APK — только INTERNET и VIBRATE
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          "$AAPT2" dump permissions "$APK" | tee permissions.txt
+          EXTRA=$(grep -oE "name='[^']+'" permissions.txt | grep -vE "INTERNET|VIBRATE|DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" || true)
+          if [ -n "$EXTRA" ]; then echo "Лишние разрешения: $EXTRA"; exit 1; fi
+
+      - name: Выгрузка APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: smilelab-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

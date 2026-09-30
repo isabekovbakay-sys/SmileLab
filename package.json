@@ -16,7 +16,8 @@
     "build:aab": "bash scripts/build-apk.sh production",
     "build:apk:local": "expo prebuild --platform android --clean && cd android && ./gradlew assembleRelease",
     "privacy:html": "tsx scripts/privacy-page.ts",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "store:graphics": "node scripts/store-screenshots.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -47,6 +48,7 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.2",
+    "playwright-core": "1.56.1",
     "sharp": "^0.35.5",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3"

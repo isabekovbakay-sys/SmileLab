@@ -9,6 +9,6 @@
       "@/assets/*": ["./assets/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules", "tests", "dist", "dist-android", "android", "ios"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "expo-env.d.ts"],
+  "exclude": ["node_modules", "tests", "scripts", "dist", "dist-android", "web-dist", "android", "ios"]
 }

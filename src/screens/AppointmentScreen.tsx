@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { appointmentMessage, doctorLabel } from '@/components/booking/bookingText';
-import { WhatsAppGlyph } from '@/components/brand/ContactGlyphs';
+import { TelegramGlyph, WhatsAppGlyph } from '@/components/brand/ContactGlyphs';
 import { appointmentStatus } from '@/components/domain/appointmentStatus';
 import { AppText } from '@/components/ui/AppText';
 import { ConfirmSheet } from '@/components/ui/BottomSheet';
@@ -84,6 +84,11 @@ export default function AppointmentScreen() {
     .filter(Boolean)
     .join(', ');
   const whenLabel = fmt.dateTime(appointment.date, appointment.time);
+  const channel = requestChannel();
+  const contactClinic = () => {
+    const text = t.appointment.contactMessage(whenLabel, service ? l(service.name) : '');
+    return channel === 'whatsapp' ? contact.whatsapp(text) : contact.telegram(text);
+  };
 
   const confirmCancel = async () => {
     setCancelling(true);
@@ -182,9 +187,9 @@ export default function AppointmentScreen() {
           )}
           <Button
             label={t.appointment.contact}
-            icon={WhatsAppGlyph}
+            icon={channel === 'whatsapp' ? WhatsAppGlyph : TelegramGlyph}
             variant="secondary"
-            onPress={() => contact.whatsapp(t.appointment.contactMessage(whenLabel, service ? l(service.name) : ''))}
+            onPress={contactClinic}
           />
         </View>
       </ScrollView>
