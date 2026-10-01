@@ -32,7 +32,8 @@
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "android.permission.WAKE_LOCK"
+        "android.permission.WAKE_LOCK",
+        "android.permission.ACCESS_NETWORK_STATE"
       ],
       "allowBackup": false,
       "predictiveBackGestureEnabled": false
