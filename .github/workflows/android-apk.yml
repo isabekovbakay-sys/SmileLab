@@ -10,9 +10,11 @@ on:
 permissions:
   contents: write
 
+# Сборки одной ветки идут по очереди и не отменяют друг друга
+# (иначе перезапуск старого запуска обрывает свежую сборку).
 concurrency:
   group: android-apk-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   apk:
