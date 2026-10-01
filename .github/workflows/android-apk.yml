@@ -1,0 +1,85 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'claude/**']
+    tags: ['v*']
+
+# Публикация APK в GitHub Releases.
+permissions:
+  contents: write
+
+# Сборки одной ветки идут по очереди и не отменяют друг друга
+# (иначе перезапуск старого запуска обрывает свежую сборку).
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Пакет «tools» убран из новых cmdline-tools — указываем список явно.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Проверки (типы, линтер, тесты)
+        run: npm run check
+
+      - name: Нативный проект Android
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Сборка APK (release)
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Разрешения в APK — только INTERNET и VIBRATE
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          "$AAPT2" dump permissions "$APK" | tee permissions.txt
+          EXTRA=$(grep -oE "name='[^']+'" permissions.txt | grep -vE "INTERNET|VIBRATE|DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" || true)
+          if [ -n "$EXTRA" ]; then echo "Лишние разрешения: $EXTRA"; exit 1; fi
+          cp "$APK" SmileLab.apk
+
+      - name: Выгрузка APK (артефакт запуска)
+        uses: actions/upload-artifact@v4
+        with:
+          name: smilelab-apk
+          path: SmileLab.apk
+          if-no-files-found: error
+
+      # Постоянная ссылка на последнюю сборку:
+      # https://github.com/<owner>/<repo>/releases/latest/download/SmileLab.apk
+      - name: Публикация в GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: SmileLab APK (сборка ${{ github.run_number }})
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: SmileLab.apk
+          body: |
+            Тестовая сборка SmileLab для прямой установки на Android (подписана отладочным ключом, не для Google Play).
+            Ветка: ${{ github.ref_name }}, коммит: ${{ github.sha }}.
+            Установка: откройте файл на телефоне → разрешите установку из этого источника → если Play Защита предупредит, «Подробнее → Всё равно установить».
