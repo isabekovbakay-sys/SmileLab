@@ -22,7 +22,7 @@ concurrency:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
 
@@ -77,6 +77,32 @@ jobs:
           cp "$APK" SmileLab.apk
           SIZE=$(du -b SmileLab.apk | cut -f1)
           echo "Размер APK: $SIZE байт ($(awk "BEGIN {printf \"%.1f\", $SIZE/1048576}") МБ)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # Запуск на эмуляторе ДО публикации: APK, который падает при старте, не попадёт в Releases.
+      # Эмулятор x86_64 переводит ARM-код приложения сам (Android 11+), поэтому старт медленный.
+      - name: KVM для эмулятора
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Smoke-тест на эмуляторе (запуск, выбор языка, главная, запись)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: python3 scripts/android-smoke-test.py SmileLab.apk smoke
+
+      - name: Скриншоты smoke-теста
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test
+          path: smoke
+          if-no-files-found: ignore
 
       - name: Выгрузка APK (артефакт запуска)
         uses: actions/upload-artifact@v4
