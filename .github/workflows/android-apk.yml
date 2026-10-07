@@ -79,7 +79,17 @@ jobs:
           echo "Размер APK: $SIZE байт ($(awk "BEGIN {printf \"%.1f\", $SIZE/1048576}") МБ)" | tee -a "$GITHUB_STEP_SUMMARY"
 
       # Запуск на эмуляторе ДО публикации: APK, который падает при старте, не попадёт в Releases.
-      # Эмулятор x86_64 переводит ARM-код приложения сам (Android 11+), поэтому старт медленный.
+      # Эмулятор — x86_64, а публикуемый APK только для ARM (телефоны): React Native не загружает
+      # ARM-библиотеки через трансляцию. Поэтому для эмулятора собирается тот же APK под x86_64:
+      # тот же JS-бандл, R8 и манифест, другие только нативные библиотеки.
+      - name: Тот же APK под x86_64 (только для эмулятора)
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+          cp app/build/outputs/apk/release/app-release.apk ../SmileLab-emulator.apk
+        env:
+          EXPO_PUBLIC_DEMO: '1'
+
       - name: KVM для эмулятора
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -94,7 +104,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: python3 scripts/android-smoke-test.py SmileLab.apk smoke
+          script: python3 scripts/android-smoke-test.py SmileLab-emulator.apk smoke
 
       - name: Скриншоты smoke-теста
         if: always()

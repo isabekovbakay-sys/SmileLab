@@ -48,3 +48,6 @@ dist-release-check/
 dist-demo/
 web-dist/
 /scratch
+
+# Python
+__pycache__/

@@ -4,7 +4,7 @@ Smoke-тест APK на эмуляторе (CI): приложение запус
 главную и первый шаг записи, без падений. Ловит то, что не видно в тестах логики:
 ошибки R8, отсутствующие нативные модули, падение JS при старте.
 
-Запуск: python3 scripts/android-smoke-test.py SmileLab.apk smoke-artifacts
+Запуск: python3 scripts/android-smoke-test.py SmileLab-emulator.apk smoke-artifacts
 """
 import re
 import subprocess
@@ -72,7 +72,7 @@ adb('install', '-r', APK)
 adb('logcat', '-c')
 adb('shell', 'am', 'start', '-W', '-n', f'{PKG}/.MainActivity')
 
-# Первый запуск: выбор языка (эмулятор переводит ARM-код в x86 — старт медленный).
+# Первый запуск: выбор языка (эмулятор без GPU — старт медленный).
 tap(wait_text('Русский', 180))
 screen('1-onboarding')
 book = wait_text('Записаться на приём', 60)
