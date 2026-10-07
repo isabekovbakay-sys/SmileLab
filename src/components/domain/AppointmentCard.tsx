@@ -5,6 +5,8 @@ import { ChevronRight } from '@/components/ui/icons';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { StatusPill } from '@/components/ui/Selection';
 import { useI18n } from '@/i18n';
+import { getScheduleMode } from '@/services/bookingDelivery';
+import { anyDoctorText } from '@/services/bookingMessage';
 import { colors, iconSize, layout, radius, spacing } from '@/theme';
 import type { Appointment, Doctor, Service } from '@/types/domain';
 import { dayOfMonth, monthIndex, weekdayOf } from '@/utils/datetime';
@@ -24,7 +26,7 @@ interface AppointmentCardProps {
 export function AppointmentCard({ appointment, service, doctor, now, onPress, testID }: AppointmentCardProps) {
   const { t, l, fmt } = useI18n();
   const status = appointmentStatus(appointment, now);
-  const doctorLabel = appointment.anyDoctor ? t.booking.anyFreeDoctor : doctor ? l(doctor.name) : '';
+  const doctorLabel = appointment.anyDoctor ? anyDoctorText(t, getScheduleMode()) : doctor ? l(doctor.name) : '';
   const serviceName = service ? l(service.name) : '';
   const month = t.dates.months[monthIndex(appointment.date)] ?? '';
 

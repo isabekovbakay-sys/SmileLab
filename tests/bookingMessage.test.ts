@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { ky } from '../src/i18n/ky';
 import { ru } from '../src/i18n/ru';
-import { buildBookingMessage, type BookingMessageInput } from '../src/services/bookingMessage';
+import { anyDoctorText, buildBookingMessage, type BookingMessageInput } from '../src/services/bookingMessage';
 
 const base: BookingMessageInput = {
   kind: 'new',
@@ -108,5 +108,11 @@ describe('текст заявки для мессенджера', () => {
     assert.ok(text.startsWith('Саламатсызбы! Жазылуумду жокко чыгаргым келет.'));
     assert.ok(!text.includes('Дарыгер:'));
     assert.ok(!text.includes('Комментарий'));
+  });
+
+  it('«любой врач»: без расписания — без слова «свободный»', () => {
+    assert.equal(anyDoctorText(ru, 'request'), 'Любой врач');
+    assert.equal(anyDoctorText(ky, 'request'), 'Каалаган дарыгер');
+    assert.equal(anyDoctorText(ru, 'slots'), 'Любой свободный врач');
   });
 });

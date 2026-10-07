@@ -1,15 +1,15 @@
 import type { I18n } from '@/i18n';
 import { getScheduleMode } from '@/services/bookingDelivery';
-import { buildBookingMessage, type BookingMessageKind } from '@/services/bookingMessage';
+import { anyDoctorText, buildBookingMessage, type BookingMessageKind } from '@/services/bookingMessage';
 import type { Appointment, Doctor, Service } from '@/types/domain';
 
-/** «Любой свободный врач» при anyDoctor — пациенту не показываем врача, подставленного приложением. */
+/** «Любой (свободный) врач» при anyDoctor — пациенту не показываем врача, подставленного приложением. */
 export function doctorLabel(
   i18n: I18n,
   appointment: Pick<Appointment, 'anyDoctor'>,
   doctor: Doctor | undefined,
 ): string {
-  if (appointment.anyDoctor || !doctor) return i18n.t.booking.anyFreeDoctor;
+  if (appointment.anyDoctor || !doctor) return anyDoctorText(i18n.t, getScheduleMode());
   return i18n.l(doctor.name);
 }
 

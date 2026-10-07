@@ -1,9 +1,18 @@
 import type { Strings } from '../i18n/ru';
 import type { ClockTime, LocalDate } from '../types/domain';
+import type { ScheduleMode } from './mock/availability';
 import { formatDateNumeric } from '../utils/datetime';
 import { formatInternationalPhone } from '../utils/phone';
 
 export type BookingMessageKind = 'new' | 'reschedule' | 'cancel';
+
+/**
+ * Подпись при «любом враче»: с настоящим расписанием — «Любой свободный врач»;
+ * в режиме «желаемое время» занятость врачей неизвестна, поэтому просто «Любой врач».
+ */
+export function anyDoctorText(t: Strings, mode: ScheduleMode): string {
+  return mode === 'request' ? t.booking.anyDoctor : t.booking.anyFreeDoctor;
+}
 
 export interface BookingMessageInput {
   kind: BookingMessageKind;

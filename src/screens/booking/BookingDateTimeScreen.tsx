@@ -244,7 +244,11 @@ export default function BookingDateTimeScreen() {
           <Card variant="tinted" style={styles.notice}>
             <CalendarX size={iconSize.lg} color={colors.hero} />
             <AppText variant="body">
-              {wanted && days.every((d) => !d.clinicOpen) ? t.booking.noWorkingHours : t.booking.noSlotsAtAll}
+              {wanted
+                ? days.every((d) => !d.clinicOpen)
+                  ? t.booking.noWorkingHours
+                  : t.booking.noWantedTime
+                : t.booking.noSlotsAtAll}
             </AppText>
             {contact.available.call ? (
               <Button label={t.booking.call} icon={Phone} variant="primary" size="md" onPress={contact.call} />
