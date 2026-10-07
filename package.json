@@ -18,6 +18,7 @@
     "privacy:html": "tsx scripts/privacy-page.ts",
     "release:check": "tsx scripts/release-check.ts",
     "bundle:check": "tsx scripts/bundle-check.ts",
+    "ky:review": "tsx scripts/ky-review.ts",
     "icons": "node scripts/generate-icons.mjs",
     "store:graphics": "node scripts/store-screenshots.mjs",
     "build:apk:debug-local": "echo \"ВНИМАНИЕ: локальная сборка подписана ОТЛАДОЧНЫМ ключом — только для проверки на своём телефоне. Пациентам и в Google Play — только сборки EAS (npm run build:apk / build:aab).\" && expo prebuild --platform android --clean && cd android && ./gradlew assembleRelease",

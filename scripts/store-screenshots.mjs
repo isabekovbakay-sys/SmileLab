@@ -1,7 +1,8 @@
 // Графика для Google Play: 7 скриншотов 1080×1920 на кыргызском и русском + feature graphic 1024×500.
 //
-// 1) Выставьте в src/config/clinic.ts реальные данные и isDemo: false (скриншоты — без плашки «Демо»).
-// 2) Соберите web-версию:           npx expo export --platform web --output-dir web-dist
+// 1) Заполните данные клиники (src/config/clinic.ts, src/data/clinic/) — npm run release:check должен пройти.
+// 2) Соберите web-версию БЕЗ демо (кэш Metro очищаем, иначе останется значение из прошлой сборки):
+//      EXPO_PUBLIC_DEMO=0 npx expo export --platform web --clear --output-dir web-dist
 // 3) Установите браузер (один раз): npx playwright-core install chromium
 // 4) Запустите:                     npm run store:graphics
 //

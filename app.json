@@ -76,7 +76,8 @@
         {
           "configureAndroidBackup": false
         }
-      ]
+      ],
+      "./plugins/withoutUpdatesMetadata"
     ],
     "experiments": {
       "typedRoutes": false,
