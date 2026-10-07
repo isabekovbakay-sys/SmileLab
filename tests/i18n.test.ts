@@ -5,7 +5,9 @@ import { createFormatters } from '../src/i18n/format';
 import { ky } from '../src/i18n/ky';
 import { kyTime } from '../src/i18n/kyGrammar';
 import { pluralRu } from '../src/i18n/plural';
-import { ru } from '../src/i18n/ru';
+import { ru, type PrivacyParams } from '../src/i18n/ru';
+import { demoStrings } from '../src/data/demo/strings';
+import { legalOperator, privacyParams } from '../src/services/privacy';
 
 type Tree = Record<string, unknown>;
 
@@ -41,14 +43,66 @@ describe('словари RU / KY', () => {
     }
   });
 
-  it('политика: одинаковое число разделов, контакты подставляются', () => {
-    const c = { clinic: 'SmileLab', phone: '+996 507 597 099', email: 'isabekovbakay@gmail.com' };
+  it('политика: одинаковое число разделов, контакты и юрлицо подставляются', () => {
+    const c: PrivacyParams = {
+      clinic: 'SmileLab',
+      phone: '+996 507 597 099',
+      email: 'isabekovbakay@gmail.com',
+      operator: { name: 'ОсОО «Тест»', inn: '01234567890123', address: 'г. Бишкек, ул. Тестовая, 1' },
+    };
     const r = ru.privacy.sections(c);
     const k = ky.privacy.sections(c);
     assert.equal(r.length, k.length);
     for (const s of [...r, ...k]) assert.ok(s.title && s.body);
-    assert.ok(r.some((s) => s.body.includes(c.email)));
-    assert.ok(k.some((s) => s.body.includes(c.phone)));
+    for (const sections of [r, k]) {
+      const text = sections.map((s) => s.body).join('\n');
+      assert.ok(text.includes(c.email!));
+      assert.ok(text.includes(c.phone!));
+      assert.ok(text.includes('01234567890123'));
+      assert.ok(text.includes('ОсОО «Тест»'));
+      assert.ok(/Meta/.test(text) && /Telegram/.test(text), 'политики мессенджеров');
+    }
+  });
+
+  it('политика: пустые поля не дают пустых строк и «null»', () => {
+    const c: PrivacyParams = { clinic: 'SmileLab', phone: null, email: null, operator: null };
+    for (const dict of [ru, ky]) {
+      const sections = dict.privacy.sections(c);
+      for (const s of sections) {
+        assert.ok(s.title.trim() && s.body.trim());
+        assert.ok(!/null|undefined|ИНН\s*[,.]|\s{2,}/.test(s.body), `${s.title}: «${s.body}»`);
+      }
+      assert.equal(sections.length, ru.privacy.sections(c).length);
+    }
+    // Без контактов раздел «Куда обращаться» скрыт.
+    assert.ok(ru.privacy.sections(c).length < ru.privacy.sections({ ...c, email: 'a@b.kg' }).length);
+  });
+
+  it('privacyParams берёт данные из конфига и требует юрлицо целиком', () => {
+    const params = privacyParams();
+    assert.equal(params.email, 'isabekovbakay@gmail.com');
+    assert.equal(params.phone, '+996 507 597 099');
+    assert.equal(params.operator, null);
+    assert.equal(legalOperator({ name: 'ИП Тест', inn: '', address: 'Бишкек' }), null);
+    assert.deepEqual(legalOperator({ name: ' ИП Тест ', inn: '123', address: 'Бишкек' }), {
+      name: 'ИП Тест',
+      inn: '123',
+      address: 'Бишкек',
+    });
+  });
+
+  it('подсказка к комментарию — на обоих языках', () => {
+    assert.equal(ru.booking.commentHint, 'Коротко, например: болит зуб, хочу консультацию');
+    assert.ok(ky.booking.commentHint.trim());
+  });
+
+  it('демо-тексты живут только в демо-модуле', () => {
+    assert.ok(!('demo' in ru) && !('demo' in ky));
+    for (const lang of ['ru', 'ky'] as const) {
+      const s = demoStrings[lang];
+      assert.ok(s.badge && s.notice && s.successTitle);
+      assert.ok(s.successText('WhatsApp').trim() && s.sendManually('WhatsApp').trim());
+    }
   });
 
   it('нет английских слов в интерфейсе (кроме названий мессенджеров и e-mail)', () => {
@@ -98,6 +152,14 @@ describe('склонения и кыргызская грамматика', () =
     assert.equal(k.relativeDate('2026-09-30', '2026-09-30'), 'Бүгүн, 30-сентябрь');
     assert.equal(r.relativeDate('2026-10-02', '2026-09-30'), '2 октября, пятница');
     assert.equal(r.dateTime('2026-09-30', '15:00'), '30 сентября, 15:00');
+    assert.equal(k.dateTime('2026-09-30', '15:00'), '30-сентябрь, саат 15:00');
+    // Сегодня/завтра со временем — без даты.
+    assert.equal(k.relativeDateTime('2026-09-30', '15:00', '2026-09-30'), 'Бүгүн, саат 15:00');
+    assert.equal(r.relativeDateTime('2026-09-30', '15:00', '2026-09-30'), 'Сегодня, 15:00');
+    assert.equal(k.relativeDateTime('2026-10-01', '09:30', '2026-09-30'), 'Эртең, саат 09:30');
+    assert.equal(r.relativeDateTime('2026-10-02', '15:00', '2026-09-30'), '2 октября, пятница, 15:00');
+    assert.equal(k.relativeDateTime('2026-10-02', '15:00', '2026-09-30'), '2-октябрь, жума, саат 15:00');
+    assert.equal(k.relativeDate('2026-09-30', '2026-09-29'), 'Эртең, 30-сентябрь');
     assert.equal(ru.booking.rescheduleTo(r.dateTime('2026-09-30', '15:00')), 'Перенести на 30 сентября, 15:00');
   });
 

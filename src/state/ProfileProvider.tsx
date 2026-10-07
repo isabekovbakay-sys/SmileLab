@@ -1,6 +1,7 @@
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { getJSON, removeKeys, setJSON, storageKeys } from '../services/storage';
+import { deleteSecure, getSecureJSON, secureKeys, setSecureJSON } from '../services/secureStorage';
+import { getJSON, removeKeys, storageKeys } from '../services/storage';
 import type { PatientProfile } from '../types/domain';
 
 interface ProfileContextValue {
@@ -22,14 +23,28 @@ function sanitize(value: Partial<PatientProfile> | null): PatientProfile {
   };
 }
 
-/** Имя, телефон и e-mail пациента. Хранятся только на устройстве. */
+/**
+ * Профиль загружается из SecureStore. Версия 1.0.0 хранила его в AsyncStorage:
+ * при первом запуске переносим и удаляем старый ключ.
+ */
+async function loadProfile(): Promise<PatientProfile> {
+  const secure = await getSecureJSON<Partial<PatientProfile> | null>(secureKeys.profile, null);
+  if (secure) return sanitize(secure);
+  const legacy = await getJSON<Partial<PatientProfile> | null>(storageKeys.profile, null);
+  if (!legacy) return EMPTY;
+  const profile = sanitize(legacy);
+  if (await setSecureJSON(secureKeys.profile, profile)) await removeKeys([storageKeys.profile]);
+  return profile;
+}
+
+/** Имя, телефон и e-mail пациента. Хранятся только на устройстве, в защищённом хранилище. */
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState({ ready: false, profile: EMPTY });
 
   useEffect(() => {
     let active = true;
-    getJSON<Partial<PatientProfile> | null>(storageKeys.profile, null).then((saved) => {
-      if (active) setState({ ready: true, profile: sanitize(saved) });
+    loadProfile().then((profile) => {
+      if (active) setState({ ready: true, profile });
     });
     return () => {
       active = false;
@@ -42,13 +57,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     (patch: Partial<PatientProfile>) => {
       const profile = { ...currentProfile, ...patch };
       setState((prev) => ({ ...prev, profile }));
-      setJSON(storageKeys.profile, profile);
+      setSecureJSON(secureKeys.profile, profile);
     },
     [currentProfile],
   );
 
   const clearProfile = useCallback(async () => {
     setState((prev) => ({ ...prev, profile: EMPTY }));
+    await deleteSecure([secureKeys.profile]);
     await removeKeys([storageKeys.profile]);
   }, []);
 

@@ -26,7 +26,13 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
   if (!mounted) return null;
 
   return (
-    <Modal transparent visible animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
+    <Modal
+      transparent
+      visible
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}>
       <View style={styles.root}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.scrim, { opacity: progress }]}>
           <Pressable
@@ -40,6 +46,7 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
           accessibilityViewIsModal
           style={[
             styles.sheet,
+            { marginLeft: insets.left, marginRight: insets.right },
             {
               paddingBottom: insets.bottom + spacing.lg,
               transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [SHEET_OFFSET, 0] }) }],

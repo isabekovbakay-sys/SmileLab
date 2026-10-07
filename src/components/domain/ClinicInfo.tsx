@@ -4,7 +4,16 @@ import { TelegramGlyph, WhatsAppGlyph } from '@/components/brand/ContactGlyphs';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Banknote, CreditCard, Mail, MapPin, Navigation, Phone, QrCode, type IconComponent } from '@/components/ui/icons';
+import {
+  Banknote,
+  CreditCard,
+  Mail,
+  MapPin,
+  Navigation,
+  Phone,
+  QrCode,
+  type IconComponent,
+} from '@/components/ui/icons';
 import { ListRow } from '@/components/ui/ListRow';
 import { clinicConfig, getBranch, type PaymentMethodId } from '@/config/clinic';
 import { cities } from '@/data/cities';
@@ -16,61 +25,78 @@ import { WEEKDAYS, weekdayOf } from '@/utils/datetime';
 import { formatInternationalPhone } from '@/utils/phone';
 import { capitalize } from '@/utils/text';
 
-/** Звонок, WhatsApp, Telegram, почта. */
+/** Звонок, WhatsApp, Telegram, почта — только заданные в config/clinic.ts. */
 export function ContactList() {
   const { t } = useI18n();
   const contact = useContactActions();
   const { contacts } = clinicConfig;
-  return (
-    <Card padded={false}>
+  const { available } = contact;
+  const rows = [
+    available.call ? (
       <ListRow
+        key="call"
         icon={Phone}
         title={t.contacts.call}
-        subtitle={formatInternationalPhone(contacts.phone)}
+        subtitle={contact.phoneLabel}
         onPress={contact.call}
-        accessibilityLabel={`${t.a11y.callClinic}, ${formatInternationalPhone(contacts.phone)}`}
+        accessibilityLabel={`${t.a11y.callClinic}, ${contact.phoneLabel}`}
       />
+    ) : null,
+    available.whatsapp ? (
       <ListRow
+        key="whatsapp"
         icon={WhatsAppGlyph}
         iconColor="brandWhatsApp"
         title={t.contacts.whatsapp}
         subtitle={formatInternationalPhone(contacts.whatsapp)}
         onPress={() => contact.whatsapp()}
         accessibilityLabel={t.a11y.whatsappClinic}
-        divider
       />
+    ) : null,
+    available.telegram ? (
       <ListRow
+        key="telegram"
         icon={TelegramGlyph}
         iconColor="brandTelegram"
         title={t.contacts.telegram}
-        subtitle={
-          contacts.telegram.username
-            ? `@${contacts.telegram.username}`
-            : formatInternationalPhone(contacts.telegram.phone)
-        }
+        subtitle={contact.telegramLabel}
         onPress={() => contact.telegram()}
         accessibilityLabel={t.a11y.telegramClinic}
-        divider
       />
+    ) : null,
+    available.email ? (
       <ListRow
+        key="email"
         icon={Mail}
         title={t.contacts.email}
         subtitle={contacts.email}
         onPress={() => contact.email(clinicConfig.name)}
         accessibilityLabel={`${t.a11y.emailClinic}, ${contacts.email}`}
-        divider
       />
+    ) : null,
+  ].filter((row) => row !== null);
+
+  if (rows.length === 0) return null;
+  return (
+    <Card padded={false}>
+      {rows.map((row, index) => (
+        <View key={row.key} style={index > 0 ? styles.divider : null}>
+          {row}
+        </View>
+      ))}
     </Card>
   );
 }
 
-/** Адрес (или честная заглушка) + кнопки 2ГИС и карты. */
+/** Адрес (или честная заглушка) + кнопки 2ГИС и карты, если есть по чему искать. */
 export function AddressBlock() {
   const { t, l } = useI18n();
   const contact = useContactActions();
   const address = getBranch().address;
   const city = l(cities[address.cityId].name);
-  const street = [address.street ? l(address.street) : null, address.building].filter(Boolean).join(', ');
+  const street = [address.street ? l(address.street) : null, address.building?.trim() || null]
+    .filter(Boolean)
+    .join(', ');
   return (
     <Card style={styles.address}>
       <View style={styles.addressRow}>
@@ -96,10 +122,28 @@ export function AddressBlock() {
           ) : null}
         </View>
       </View>
-      <View style={styles.addressActions}>
-        <Button label={t.contacts.open2gis} icon={Navigation} size="md" variant="primary" onPress={contact.open2gis} />
-        <Button label={t.contacts.openMap} icon={MapPin} size="md" variant="secondary" onPress={contact.openMap} />
-      </View>
+      {contact.available.twoGis || contact.available.map ? (
+        <View style={styles.addressActions}>
+          {contact.available.twoGis ? (
+            <Button
+              label={t.contacts.open2gis}
+              icon={Navigation}
+              size="md"
+              variant="primary"
+              onPress={contact.open2gis}
+            />
+          ) : null}
+          {contact.available.map ? (
+            <Button
+              label={t.contacts.openMap}
+              icon={MapPin}
+              size="md"
+              variant={contact.available.twoGis ? 'secondary' : 'primary'}
+              onPress={contact.openMap}
+            />
+          ) : null}
+        </View>
+      ) : null}
     </Card>
   );
 }
@@ -110,6 +154,15 @@ export function HoursTable() {
   const { today } = useToday();
   const todayWeekday = weekdayOf(today);
   const hours = getBranch().workingHours;
+  if (WEEKDAYS.every((day) => !hours[day].hours)) {
+    return (
+      <Card>
+        <AppText variant="body" color="textSecondary">
+          {t.home.status.unknown}
+        </AppText>
+      </Card>
+    );
+  }
   return (
     <Card padded={false}>
       {WEEKDAYS.map((day, index) => {

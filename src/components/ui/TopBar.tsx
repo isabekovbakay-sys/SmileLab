@@ -9,6 +9,7 @@ import { colors, layout, spacing } from '@/theme';
 import { AppText } from './AppText';
 import { IconButton } from './IconButton';
 import { ChevronLeft } from './icons';
+import { ScreenContainer } from './ScreenContainer';
 
 interface TopBarProps {
   title?: string;
@@ -29,7 +30,15 @@ export function goBackOrHome() {
   else router.replace('/');
 }
 
-export function TopBar({ title, onBack, showBack = true, right, overlay = false, scrollY, solidAt = 160 }: TopBarProps) {
+export function TopBar({
+  title,
+  onBack,
+  showBack = true,
+  right,
+  overlay = false,
+  scrollY,
+  solidAt = 160,
+}: TopBarProps) {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
 
@@ -44,35 +53,45 @@ export function TopBar({ title, onBack, showBack = true, right, overlay = false,
         { paddingTop: insets.top, height: layout.topBarHeight + insets.top },
         overlay ? styles.overlay : styles.solid,
       ]}>
-      {overlay ? <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.fill, { opacity: solid }]} /> : null}
-      <View style={styles.side}>
-        {showBack ? (
-          <IconButton
-            icon={ChevronLeft}
-            accessibilityLabel={t.a11y.back}
-            onPress={onBack ?? goBackOrHome}
-            variant={overlay ? 'onHero' : 'plain'}
-          />
-        ) : null}
-      </View>
-      <Animated.View style={[styles.titleWrap, overlay ? { opacity: solid } : null]}>
-        {title ? (
-          <AppText variant="title" numberOfLines={1} align="center" accessibilityRole="header">
-            {title}
-          </AppText>
-        ) : null}
-      </Animated.View>
-      <View style={[styles.side, styles.sideRight]}>{right}</View>
+      {overlay ? (
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.fill, { opacity: solid }]} />
+      ) : null}
+      <ScreenContainer style={styles.row} outerStyle={styles.rowOuter}>
+        <View style={styles.side}>
+          {showBack ? (
+            <IconButton
+              icon={ChevronLeft}
+              accessibilityLabel={t.a11y.back}
+              onPress={onBack ?? goBackOrHome}
+              variant={overlay ? 'onHero' : 'plain'}
+            />
+          ) : null}
+        </View>
+        <Animated.View style={[styles.titleWrap, overlay ? { opacity: solid } : null]}>
+          {title ? (
+            <AppText variant="title" numberOfLines={1} align="center" accessibilityRole="header">
+              {title}
+            </AppText>
+          ) : null}
+        </Animated.View>
+        <View style={[styles.side, styles.sideRight]}>{right}</View>
+      </ScreenContainer>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   bar: {
+    zIndex: 10,
+  },
+  rowOuter: {
+    flex: 1,
+  },
+  row: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.xs,
-    zIndex: 10,
   },
   solid: {
     backgroundColor: colors.background,

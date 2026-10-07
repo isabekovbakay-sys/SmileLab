@@ -22,7 +22,7 @@ interface ServiceRowProps {
 /** Строка услуги: иконка, название, одна строка описания, «от 2 500 сом · ≈ 60 мин». */
 export function ServiceRow({ service, onPress, divider, right, selected, testID }: ServiceRowProps) {
   const { l, fmt } = useI18n();
-  const meta = `${fmt.price(service.priceFrom)} · ${fmt.duration(service.durationMin)}`;
+  const meta = fmt.serviceMeta(service);
   return (
     <PressableScale
       testID={testID}

@@ -10,13 +10,20 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { PhoneField, TextField } from '@/components/ui/Fields';
-import { CalendarCheck, CalendarDays, ClipboardList, CreditCard, Stethoscope, type IconComponent } from '@/components/ui/icons';
+import {
+  CalendarCheck,
+  CalendarDays,
+  ClipboardList,
+  CreditCard,
+  Stethoscope,
+  type IconComponent,
+} from '@/components/ui/icons';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { EmptyState } from '@/components/ui/StateViews';
 import { useDoctors, useServices } from '@/hooks/useClinicData';
 import { useToday } from '@/hooks/useToday';
 import { useI18n } from '@/i18n';
-import { getDeliveryMode } from '@/services/bookingDelivery';
+import { getDeliveryMode, getScheduleMode } from '@/services/bookingDelivery';
 import { ANY_DOCTOR, bookingRoutes, useBooking } from '@/state/BookingProvider';
 import { useProfile } from '@/state/ProfileProvider';
 import { colors, iconSize, layout, radius, spacing } from '@/theme';
@@ -119,13 +126,13 @@ export default function BookingDetailsScreen() {
             icon={Stethoscope}
             label={t.booking.summaryService}
             value={service ? l(service.name) : ''}
-            detail={service ? `${fmt.price(service.priceFrom)} · ${fmt.duration(service.durationMin)}` : undefined}
+            detail={service ? fmt.serviceMeta(service) : undefined}
             onChange={() => router.push(bookingRoutes.service)}
           />
           <SummaryRow
             divider
             icon={CalendarDays}
-            label={t.booking.summaryWhen}
+            label={getScheduleMode() === 'request' ? t.booking.summaryWanted : t.booking.summaryWhen}
             value={fmt.relativeDateTime(draft.date, draft.time, today)}
             detail={doctorLabel(i18n, { anyDoctor: draft.doctorChoice === ANY_DOCTOR }, doctor)}
             onChange={() => router.back()}
@@ -162,10 +169,11 @@ export default function BookingDetailsScreen() {
             label={t.booking.commentLabel}
             optionalLabel={t.booking.optional}
             placeholder={t.booking.commentPlaceholder}
+            hint={t.booking.commentHint}
             value={comment}
             onChangeText={setComment}
             multiline
-            maxLength={500}
+            maxLength={200}
           />
         </View>
 

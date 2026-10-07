@@ -1,9 +1,18 @@
-import type { ClockTime, Language, LocalDate, LocalizedText, Weekday } from '../types/domain';
+import type { ClockTime, Language, LocalDate, LocalizedText, Service, Weekday } from '../types/domain';
 import { addDays, dayOfMonth, formatDateNumeric, monthIndex, weekdayOf } from '../utils/datetime';
 import type { Strings } from './ru';
 
 /** Форматтеры дат и цен для выбранного языка. Чистые функции: «сегодня» передаётся явно. */
+type PriceInfo = Pick<Service, 'priceFrom' | 'priceAfterConsultation'>;
+
 export function createFormatters(t: Strings) {
+  const price = (service: PriceInfo): string | null =>
+    service.priceFrom !== null
+      ? t.common.priceFrom(service.priceFrom)
+      : service.priceAfterConsultation
+        ? t.common.priceOnConsultation
+        : null;
+
   const dateLong = (date: LocalDate) => t.dates.long(dayOfMonth(date), t.dates.months[monthIndex(date)] ?? '');
   const weekday = (date: LocalDate) => t.dates.weekdays[weekdayOf(date)];
   const weekdayShort = (day: Weekday) => t.dates.weekdaysShort[day];
@@ -31,12 +40,18 @@ export function createFormatters(t: Strings) {
     dayChipLabel: (date: LocalDate, today: LocalDate) =>
       relativeWord(date, today) ?? t.dates.weekdaysShort[weekdayOf(date)],
     dateTime: (date: LocalDate, time: ClockTime) => t.dates.dateTime(dateLong(date), time),
-    relativeDateTime: (date: LocalDate, time: ClockTime, today: LocalDate) =>
-      t.dates.dateTime(relativeDate(date, today), time),
+    /** «Сегодня, 15:00» / «Бүгүн, саат 15:00»; дальше — «2 октября, пятница, 15:00». */
+    relativeDateTime: (date: LocalDate, time: ClockTime, today: LocalDate) => {
+      const word = relativeWord(date, today);
+      return word ? t.dates.relativeTime(word, time) : t.dates.dateTime(relativeDate(date, today), time);
+    },
     timeRange: (start: ClockTime, end: ClockTime) => t.dates.range(start, end),
-    price: (priceFrom: number | null) =>
-      priceFrom === null ? t.common.priceOnConsultation : t.common.priceFrom(priceFrom),
+    /** «от 2 500 сом», «Цена после консультации» или null — цену не показываем. */
+    price,
     duration: (minutes: number) => t.common.duration(minutes),
+    /** «от 2 500 сом · ≈ 60 мин» (без цены, если она не задана). */
+    serviceMeta: (service: PriceInfo & Pick<Service, 'durationMin'>) =>
+      [price(service), t.common.duration(service.durationMin)].filter(Boolean).join(' · '),
   };
 }
 

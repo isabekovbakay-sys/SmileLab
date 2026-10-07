@@ -37,7 +37,11 @@ describe('текст заявки для мессенджера', () => {
   });
 
   it('KY: новая запись', () => {
-    const text = buildBookingMessage(ky, { ...base, serviceName: 'Консультация жана дарылоо планы', doctorLabel: 'Бош болгон каалаган дарыгер' });
+    const text = buildBookingMessage(ky, {
+      ...base,
+      serviceName: 'Консультация жана дарылоо планы',
+      doctorLabel: 'Бош болгон каалаган дарыгер',
+    });
     assert.ok(text.startsWith('Саламатсызбы! Кабыл алууга жазылгым келет.'));
     assert.ok(text.includes('Кызмат: Консультация жана дарылоо планы'));
     assert.ok(text.includes('Күнү: 05.10.2026'));
@@ -65,6 +69,38 @@ describe('текст заявки для мессенджера', () => {
     assert.ok(text.includes('Было: 05.10.2026, 15:00'));
     assert.ok(text.includes('Стало: 07.10.2026, 10:30'));
     assert.ok(!text.includes('Комментарий'));
+  });
+
+  it('желаемое время (без сервера): одна строка «Желаемое время: 30.09.2026, 15:00»', () => {
+    const text = buildBookingMessage(ru, { ...base, date: '2026-09-30', wanted: true });
+    assert.ok(text.includes('Желаемое время: 30.09.2026, 15:00'));
+    assert.ok(!text.includes('Дата:'));
+    assert.ok(!text.includes('Время: 15:00\n'));
+    const kyText = buildBookingMessage(ky, { ...base, date: '2026-09-30', wanted: true });
+    assert.ok(kyText.includes('Кааланган убакыт: 30.09.2026, 15:00'));
+  });
+
+  it('врач «по возможности» и перенос желаемого времени', () => {
+    const text = buildBookingMessage(ru, {
+      ...base,
+      kind: 'reschedule',
+      wanted: true,
+      doctorPreferred: true,
+      doctorLabel: 'Елена Ким',
+      date: '2026-10-07',
+      time: '10:30',
+      previous: { date: '2026-10-05', time: '15:00' },
+    });
+    assert.ok(text.includes('Врач (по возможности): Елена Ким'));
+    assert.ok(text.includes('Было: 05.10.2026, 15:00'));
+    assert.ok(text.includes('Новое желаемое время: 07.10.2026, 10:30'));
+  });
+
+  it('без телефона строка «Телефон» не выводится', () => {
+    for (const dict of [ru, ky]) {
+      const text = buildBookingMessage(dict, { ...base, kind: 'cancel', patientPhone: undefined });
+      assert.ok(!text.includes(`${dict.messages.phone}:`));
+    }
   });
 
   it('отмена: без врача и комментария', () => {

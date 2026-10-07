@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /** JSON-обёртка над AsyncStorage. Ошибки хранилища не роняют приложение. */
-const PREFIX = 'smilelab:';
+export const STORAGE_PREFIX = 'smilelab:';
+const PREFIX = STORAGE_PREFIX;
 
 export const storageKeys = {
   settings: 'settings.v1',
@@ -32,5 +33,24 @@ export async function removeKeys(keys: string[]): Promise<void> {
     await AsyncStorage.multiRemove(keys.map((k) => PREFIX + k));
   } catch {
     // Нечего делать: данные останутся до следующей попытки.
+  }
+}
+
+/** Все ключи AsyncStorage этого приложения (с префиксом). */
+export async function listAppKeys(): Promise<string[]> {
+  try {
+    return (await AsyncStorage.getAllKeys()).filter((key) => key.startsWith(PREFIX));
+  } catch {
+    return [];
+  }
+}
+
+/** Удалить ключи как есть (полные имена, вместе с префиксом). */
+export async function removeRawKeys(keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+  try {
+    await AsyncStorage.multiRemove(keys);
+  } catch {
+    // Повторим при следующем удалении.
   }
 }

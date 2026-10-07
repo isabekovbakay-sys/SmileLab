@@ -22,9 +22,16 @@ import { useToday } from '@/hooks/useToday';
 import { useI18n } from '@/i18n';
 import { repositories, SlotUnavailableError } from '@/services';
 import { track } from '@/services/analytics';
-import { getDeliveryMode, requestChannel, sendToMessenger } from '@/services/bookingDelivery';
+import {
+  channelTitle,
+  getDeliveryMode,
+  getScheduleMode,
+  requestChannel,
+  sendToMessenger,
+} from '@/services/bookingDelivery';
 import { useAppointments } from '@/state/AppointmentsProvider';
 import { ANY_DOCTOR, bookingRoutes, useBooking } from '@/state/BookingProvider';
+import { useProfile } from '@/state/ProfileProvider';
 import { useToast } from '@/state/ToastProvider';
 import { colors, iconSize, layout, radius, spacing } from '@/theme';
 import type { LocalDate, TimeSlot } from '@/types/domain';
@@ -41,10 +48,13 @@ export default function BookingDateTimeScreen() {
   const { today } = useToday();
   const { closeFlow } = useBookingNavigation();
   const { showToast } = useToast();
+  const { profile } = useProfile();
   const contact = useContactActions();
   const [saving, setSaving] = useState(false);
 
   const isReschedule = draft.mode === 'reschedule';
+  // Без сервера реального расписания нет: пациент выбирает желаемое время, клиника подтверждает.
+  const wanted = getScheduleMode() === 'request';
   const service = services.data?.find((s) => s.id === draft.serviceId);
   const doctorId = draft.doctorChoice === ANY_DOCTOR ? null : draft.doctorChoice;
   const branchId = draft.original?.branchId ?? clinicConfig.defaultBranchId;
@@ -53,7 +63,9 @@ export default function BookingDateTimeScreen() {
   );
 
   const key = draft.serviceId
-    ? ['slots', draft.serviceId, doctorId ?? 'any', today, version, draft.slotsNonce, draft.original?.id ?? ''].join(':')
+    ? ['slots', draft.serviceId, doctorId ?? 'any', today, version, draft.slotsNonce, draft.original?.id ?? ''].join(
+        ':',
+      )
     : null;
   const availability = useResource(
     key,
@@ -78,13 +90,13 @@ export default function BookingDateTimeScreen() {
       : (firstAvailable?.date ?? days.find((d) => d.clinicOpen)?.date ?? null);
   const selectedDay = days.find((d) => d.date === selectedDate);
   const selectedTime = draft.date === selectedDate ? draft.time : null;
-  const nearest = days.find((d) => d.slots.length > 0 && selectedDate !== null && d.date > selectedDate) ?? firstAvailable;
+  const nearest =
+    days.find((d) => d.slots.length > 0 && selectedDate !== null && d.date > selectedDate) ?? firstAvailable;
   const selectionLabel = selectedDate && selectedTime ? fmt.relativeDateTime(selectedDate, selectedTime, today) : null;
 
   const chooseDoctor = (choice: string) => update({ doctorChoice: choice, time: null, slotDoctorIds: [] });
   const chooseDay = (date: LocalDate) => update({ date, time: null, slotDoctorIds: [] });
-  const chooseSlot = (slot: TimeSlot) =>
-    update({ date: selectedDate, time: slot.time, slotDoctorIds: slot.doctorIds });
+  const chooseSlot = (slot: TimeSlot) => update({ date: selectedDate, time: slot.time, slotDoctorIds: slot.doctorIds });
 
   const confirmReschedule = async () => {
     const original = draft.original;
@@ -104,7 +116,10 @@ export default function BookingDateTimeScreen() {
         const doctor = doctors.data?.find((d) => d.id === updated.doctorId);
         await sendToMessenger(
           requestChannel(),
-          appointmentMessage(i18n, 'reschedule', updated, service, doctor, { date: original.date, time: original.time }),
+          appointmentMessage(i18n, 'reschedule', updated, service, doctor, {
+            phone: profile.phone,
+            previous: { date: original.date, time: original.time },
+          }),
         );
       }
       showToast(t.booking.rescheduled, 'success');
@@ -140,7 +155,7 @@ export default function BookingDateTimeScreen() {
       ? t.booking.rescheduleCurrent(fmt.dateTime(draft.original.date, draft.original.time))
       : undefined
     : service
-      ? `${l(service.name)} · ${fmt.price(service.priceFrom)}`
+      ? [l(service.name), fmt.price(service)].filter(Boolean).join(' · ')
       : undefined;
 
   const footer = (
@@ -183,6 +198,11 @@ export default function BookingDateTimeScreen() {
       confirmClose={!isReschedule}
       onBack={router.canDismiss() ? () => router.back() : undefined}
       footer={footer}>
+      {serviceDoctors.length > 1 && wanted ? (
+        <AppText variant="caption" color="textSecondary" style={styles.caption}>
+          {t.booking.doctorOptional}
+        </AppText>
+      ) : null}
       {serviceDoctors.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           <Chip
@@ -203,7 +223,7 @@ export default function BookingDateTimeScreen() {
       ) : null}
 
       {availability.status === 'ready' ? (
-        <DateStrip days={days} selected={selectedDate} today={today} onSelect={chooseDay} />
+        <DateStrip days={days} selected={selectedDate} today={today} onSelect={chooseDay} wanted={wanted} />
       ) : null}
 
       <View style={styles.body}>
@@ -223,19 +243,41 @@ export default function BookingDateTimeScreen() {
         ) : !firstAvailable ? (
           <Card variant="tinted" style={styles.notice}>
             <CalendarX size={iconSize.lg} color={colors.hero} />
-            <AppText variant="body">{t.booking.noSlotsAtAll}</AppText>
-            <Button label={t.booking.call} icon={Phone} variant="primary" size="md" onPress={contact.call} />
+            <AppText variant="body">
+              {wanted && days.every((d) => !d.clinicOpen) ? t.booking.noWorkingHours : t.booking.noSlotsAtAll}
+            </AppText>
+            {contact.available.call ? (
+              <Button label={t.booking.call} icon={Phone} variant="primary" size="md" onPress={contact.call} />
+            ) : null}
           </Card>
         ) : selectedDay && selectedDay.slots.length > 0 ? (
-          <SlotGrid slots={selectedDay.slots} selected={selectedTime} onSelect={chooseSlot} />
+          <View style={styles.slots}>
+            <AppText variant="h3" accessibilityRole="header">
+              {wanted ? t.booking.slotsWanted : t.booking.slotsFree}
+            </AppText>
+            <SlotGrid slots={selectedDay.slots} selected={selectedTime} onSelect={chooseSlot} />
+            {wanted ? (
+              <AppText variant="bodySm" color="textSecondary">
+                {t.booking.wantedNote(channelTitle(requestChannel()))}
+              </AppText>
+            ) : null}
+          </View>
         ) : (
           <Card variant="tinted" style={styles.notice}>
             <CalendarClock size={iconSize.lg} color={colors.hero} />
-            <AppText variant="body">{selectedDay?.clinicOpen === false ? t.booking.dayClosed : t.booking.noSlotsDay}</AppText>
+            <AppText variant="body">
+              {selectedDay?.clinicOpen === false
+                ? t.booking.dayClosed
+                : wanted
+                  ? t.booking.noTimeLeft
+                  : t.booking.noSlotsDay}
+            </AppText>
             {nearest ? (
               <>
                 <AppText variant="title">
-                  {t.booking.nearest(fmt.relativeDateTime(nearest.date, nearest.slots[0]!.time, today))}
+                  {wanted
+                    ? t.booking.nearestWorkday(fmt.relativeDate(nearest.date, today))
+                    : t.booking.nearest(fmt.relativeDateTime(nearest.date, nearest.slots[0]!.time, today))}
                 </AppText>
                 <Button
                   label={t.booking.show}
@@ -257,6 +299,13 @@ const styles = StyleSheet.create({
   chips: {
     paddingHorizontal: layout.gutter,
     gap: spacing.xs,
+  },
+  caption: {
+    paddingHorizontal: layout.gutter,
+    marginBottom: -spacing.sm,
+  },
+  slots: {
+    gap: spacing.md,
   },
   body: {
     paddingHorizontal: layout.gutter,

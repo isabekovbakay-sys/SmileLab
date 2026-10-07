@@ -3,15 +3,7 @@ export type Language = 'ky' | 'ru';
 /** Текст на обоих языках приложения. Выбирается через `l(text)` из `useI18n()`. */
 export type LocalizedText = Record<Language, string>;
 
-export type CityId =
-  | 'bishkek'
-  | 'osh'
-  | 'karakol'
-  | 'jalal-abad'
-  | 'tokmok'
-  | 'naryn'
-  | 'talas'
-  | 'batken';
+export type CityId = 'bishkek' | 'osh' | 'karakol' | 'jalal-abad' | 'tokmok' | 'naryn' | 'talas' | 'batken';
 
 export interface Address {
   cityId: CityId;
@@ -52,7 +44,10 @@ export interface Branch {
   id: string;
   name: LocalizedText;
   address: Address;
+  /** Точные координаты входа. null — карта ищет по полному адресу. */
   coordinates: Coordinates | null;
+  /** Прямая ссылка на карточку клиники в 2ГИС (https://2gis.kg/bishkek/firm/…). */
+  twoGisUrl: string | null;
   workingHours: WeeklySchedule;
 }
 
@@ -87,8 +82,10 @@ export interface Service {
   process: ProcessStep[];
   expectations: LocalizedText[];
   faq: FaqItem[];
-  /** Цена «от», в сомах. null — стоимость после консультации. */
+  /** Цена «от», в сомах. null — цену не показываем (см. priceAfterConsultation). */
   priceFrom: number | null;
+  /** Цену называет врач после осмотра: вместо цены — «Цена после консультации». */
+  priceAfterConsultation: boolean;
   durationMin: number;
   featured: boolean;
   isConsultation: boolean;
@@ -140,7 +137,12 @@ export interface AppointmentRequest {
 
 export type AppointmentStatus = 'requested' | 'confirmed' | 'cancelled';
 
-export interface Appointment extends AppointmentRequest {
+/**
+ * Запись, сохранённая на телефоне. Телефон пациента и комментарий не храним:
+ * они уходят только в сообщение клинике (или на сервер).
+ */
+export interface Appointment extends Omit<AppointmentRequest, 'patient' | 'comment'> {
+  patient: { name: string };
   id: string;
   status: AppointmentStatus;
   /** ISO 8601 со смещением клиники: 2026-09-30T15:00:00+06:00 */
@@ -161,13 +163,14 @@ export interface ClinicContent {
   heroTitle: LocalizedText;
   heroSubtitle: LocalizedText;
   principles: ClinicPrinciple[];
+  /** Промо-карточка имплантации на главной. null — карточки нет. */
   implantPromo: {
     serviceId: string;
     title: LocalizedText;
     text: LocalizedText;
     /** Композиция на герое имплантации: первое слово за имплантом, второе перед ним. */
     artWords: Record<Language, [string, string]>;
-  };
+  } | null;
   medicalDisclaimer: LocalizedText;
 }
 

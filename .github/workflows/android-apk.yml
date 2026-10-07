@@ -1,5 +1,8 @@
 name: Android APK
 
+# Собирает ДЕМО-APK (EXPO_PUBLIC_DEMO=1, отладочный ключ) — показать приложение владельцу.
+# Релиз для пациентов и Google Play собирается только через EAS: bash scripts/build-apk.sh apk|production.
+
 on:
   workflow_dispatch:
   push:
@@ -46,12 +49,19 @@ jobs:
       - name: Проверки (типы, линтер, тесты)
         run: npm run check
 
+      - name: В релизном бандле нет демо-данных
+        run: npm run bundle:check
+
       - name: Нативный проект Android
         run: npx expo prebuild --platform android --clean --no-install
+        env:
+          EXPO_PUBLIC_DEMO: '1'
 
-      - name: Сборка APK (release)
+      - name: Сборка демо-APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
+        env:
+          EXPO_PUBLIC_DEMO: '1'
 
       - name: Разрешения в APK — только INTERNET и VIBRATE
         run: |
@@ -60,7 +70,13 @@ jobs:
           "$AAPT2" dump permissions "$APK" | tee permissions.txt
           EXTRA=$(grep -oE "name='[^']+'" permissions.txt | grep -vE "INTERNET|VIBRATE|DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" || true)
           if [ -n "$EXTRA" ]; then echo "Лишние разрешения: $EXTRA"; exit 1; fi
+          "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > manifest.txt
+          if grep -qE "FullscreenPlayerActivity|expo.modules.updates" manifest.txt; then
+            echo "В манифесте остались видеоплеер или expo-updates"; exit 1
+          fi
           cp "$APK" SmileLab.apk
+          SIZE=$(du -b SmileLab.apk | cut -f1)
+          echo "Размер APK: $SIZE байт ($(awk "BEGIN {printf \"%.1f\", $SIZE/1048576}") МБ)" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Выгрузка APK (артефакт запуска)
         uses: actions/upload-artifact@v4
@@ -75,11 +91,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
-          name: SmileLab APK (сборка ${{ github.run_number }})
+          name: SmileLab ДЕМО (сборка ${{ github.run_number }}) — отладочный ключ, не для пациентов
           target_commitish: ${{ github.sha }}
           make_latest: true
           files: SmileLab.apk
           body: |
-            Тестовая сборка SmileLab для прямой установки на Android (подписана отладочным ключом, не для Google Play).
+            ДЕМО-сборка SmileLab: примерные услуги, цены, врачи и часы работы, плашка «Демо».
+            Подписана отладочным ключом — только для показа, не для пациентов и не для Google Play.
+            Релиз собирается через EAS (bash scripts/build-apk.sh apk|production) после заполнения src/config/clinic.ts.
             Ветка: ${{ github.ref_name }}, коммит: ${{ github.sha }}.
             Установка: откройте файл на телефоне → разрешите установку из этого источника → если Play Защита предупредит, «Подробнее → Всё равно установить».

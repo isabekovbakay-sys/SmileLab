@@ -11,15 +11,25 @@ import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
-import { CalendarDays, Check, Stethoscope, Users, X } from '@/components/ui/icons';
+import { CalendarDays, CalendarPlus, Check, Stethoscope, Users, X } from '@/components/ui/icons';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { StickyFooter } from '@/components/ui/StickyFooter';
 import { useDoctors, useServices } from '@/hooks/useClinicData';
 import { useToday } from '@/hooks/useToday';
-import { useI18n } from '@/i18n';
-import { channelTitle, getDeliveryMode, requestChannel, sendToMessenger } from '@/services/bookingDelivery';
+import { useDemoStrings, useI18n } from '@/i18n';
+import {
+  channelTitle,
+  getDeliveryMode,
+  getScheduleMode,
+  requestChannel,
+  sendToMessenger,
+} from '@/services/bookingDelivery';
+import { useAddToCalendar } from '@/hooks/useAddToCalendar';
 import { useAppointments } from '@/state/AppointmentsProvider';
+import { useBooking } from '@/state/BookingProvider';
+import { useProfile } from '@/state/ProfileProvider';
 import { useToast } from '@/state/ToastProvider';
-import { colors, iconSize, layout, radius, spacing } from '@/theme';
+import { colors, iconSize, radius, spacing } from '@/theme';
 
 /** Экран успеха. Кнопки закреплены внизу; системная «Назад» закрывает весь поток записи. */
 export default function BookingSuccessScreen() {
@@ -32,6 +42,11 @@ export default function BookingSuccessScreen() {
   const doctors = useDoctors();
   const { today } = useToday();
   const { showToast } = useToast();
+  const { draft } = useBooking();
+  const { profile } = useProfile();
+  const calendar = useAddToCalendar();
+  const demoText = useDemoStrings();
+  const wanted = getScheduleMode() === 'request';
 
   const appointment = appointments.find((a) => a.id === id);
   const service = services.data?.find((s) => s.id === appointment?.serviceId);
@@ -57,18 +72,26 @@ export default function BookingSuccessScreen() {
     mode === 'api'
       ? t.booking.success.titleApi
       : mode === 'demo'
-        ? t.booking.success.titleDemo
+        ? (demoText?.successTitle ?? '')
         : t.booking.success.titleMessenger;
   const text =
     mode === 'api'
       ? t.booking.success.textApi
       : mode === 'demo'
-        ? t.booking.success.textDemo(channelName)
+        ? (demoText?.successText(channelName) ?? '')
         : t.booking.success.textMessenger(channelName);
 
   const sendAgain = async () => {
     if (!appointment) return;
-    const opened = await sendToMessenger(channel, appointmentMessage(i18n, 'new', appointment, service, doctor));
+    // Телефон и комментарий — из только что отправленной заявки (в памяти) или из профиля.
+    const submitted = draft.submitted?.appointmentId === appointment.id ? draft.submitted : null;
+    const opened = await sendToMessenger(
+      channel,
+      appointmentMessage(i18n, 'new', appointment, service, doctor, {
+        phone: submitted?.phone ?? profile.phone,
+        comment: submitted?.comment,
+      }),
+    );
     if (!opened) showToast(t.common.couldNotOpenLink, 'error');
   };
 
@@ -77,54 +100,71 @@ export default function BookingSuccessScreen() {
       <View style={[styles.close, { top: insets.top + spacing.xs }]}>
         <IconButton icon={X} accessibilityLabel={t.common.toHome} onPress={goHome} testID="success-close" />
       </View>
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.xxl }]}
-        showsVerticalScrollIndicator={false}>
-        <Fade fromScale={0.8} style={styles.checkWrap}>
-          <View style={styles.check}>
-            <Check size={iconSize.hero} color={colors.onPrimary} strokeWidth={3} />
-          </View>
-        </Fade>
-        <Fade delay={120} style={styles.texts}>
-          <AppText variant="h1" align="center" accessibilityRole="header">
-            {title}
-          </AppText>
-          <AppText variant="body" color="textSecondary" align="center">
-            {text}
-          </AppText>
-        </Fade>
-
-        {appointment ? (
-          <Fade delay={220}>
-            <Card style={styles.card}>
-              <AppText variant="numeral" color="hero">
-                {appointment.time}
-              </AppText>
-              <AppText variant="title">{fmt.relativeDate(appointment.date, today)}</AppText>
-              <View style={styles.cardRow}>
-                <Stethoscope size={iconSize.md} color={colors.hero} />
-                <AppText variant="body" style={styles.flex}>
-                  {service ? l(service.name) : ''}
-                </AppText>
-              </View>
-              <View style={styles.cardRow}>
-                <Users size={iconSize.md} color={colors.hero} />
-                <AppText variant="body" style={styles.flex}>
-                  {doctorLabel(i18n, appointment, doctor)}
-                </AppText>
-              </View>
-            </Card>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <ScreenContainer padded style={[styles.content, { paddingTop: insets.top + spacing.xxl }]}>
+          <Fade fromScale={0.8} style={styles.checkWrap}>
+            <View style={styles.check}>
+              <Check size={iconSize.hero} color={colors.onPrimary} strokeWidth={3} />
+            </View>
           </Fade>
-        ) : null}
+          <Fade delay={120} style={styles.texts}>
+            <AppText variant="h1" align="center" accessibilityRole="header">
+              {title}
+            </AppText>
+            <AppText variant="body" color="textSecondary" align="center">
+              {text}
+            </AppText>
+          </Fade>
 
-        {mode === 'demo' ? <DemoNotice /> : null}
+          {appointment ? (
+            <Fade delay={220}>
+              <Card style={styles.card}>
+                {wanted ? (
+                  <AppText variant="overline" color="textSecondary">
+                    {t.booking.summaryWanted}
+                  </AppText>
+                ) : null}
+                <AppText variant="numeral" color="hero">
+                  {appointment.time}
+                </AppText>
+                <AppText variant="title">{fmt.relativeDate(appointment.date, today)}</AppText>
+                <View style={styles.cardRow}>
+                  <Stethoscope size={iconSize.md} color={colors.hero} />
+                  <AppText variant="body" style={styles.flex}>
+                    {service ? l(service.name) : ''}
+                  </AppText>
+                </View>
+                <View style={styles.cardRow}>
+                  <Users size={iconSize.md} color={colors.hero} />
+                  <AppText variant="body" style={styles.flex}>
+                    {doctorLabel(i18n, appointment, doctor)}
+                  </AppText>
+                </View>
+                {calendar.supported ? (
+                  <Button
+                    label={t.appointment.addToCalendar}
+                    icon={CalendarPlus}
+                    variant="ghost"
+                    size="md"
+                    style={styles.calendar}
+                    onPress={() => calendar.add(appointment, service)}
+                  />
+                ) : null}
+              </Card>
+            </Fade>
+          ) : null}
+
+          {mode === 'demo' ? <DemoNotice /> : null}
+        </ScreenContainer>
       </ScrollView>
 
       <StickyFooter>
         {mode !== 'api' && appointment ? (
           <Button
             testID="success-messenger"
-            label={mode === 'demo' ? t.booking.success.sendManually(channelName) : t.booking.success.reopen(channelName)}
+            label={
+              mode === 'demo' && demoText ? demoText.sendManually(channelName) : t.booking.success.reopen(channelName)
+            }
             icon={ChannelIcon}
             variant="accent"
             onPress={sendAgain}
@@ -152,12 +192,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: layout.gutter,
     paddingBottom: spacing.xxl,
     gap: spacing.lg,
-    width: '100%',
-    maxWidth: layout.maxContentWidth + layout.gutter * 2,
-    alignSelf: 'center',
+  },
+  calendar: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 0,
   },
   checkWrap: {
     alignItems: 'center',

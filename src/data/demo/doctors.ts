@@ -1,9 +1,8 @@
 import type { DaySchedule, Doctor, LocalizedText, WeeklySchedule } from '../../types/domain';
 
 /**
- * ДЕМО-врачи: имена сокращены и условны, расписание — пример.
- * Фото не используются: в приложении показывается монограмма.
- * Замените реальными перед публикацией (или отдавайте с сервера: GET /doctors).
+ * ДЕМО-врачи: попадают только в демо-сборку (EXPO_PUBLIC_DEMO=1). Имена условны.
+ * Реальные врачи — в src/data/clinic/doctors.ts.
  */
 const L = (ru: string, ky: string): LocalizedText => ({ ru, ky });
 
@@ -24,11 +23,11 @@ const week = (partial: Partial<WeeklySchedule>): WeeklySchedule => ({
   ...partial,
 });
 
-export const mockDoctors: Doctor[] = [
+export const demoDoctors: Doctor[] = [
   {
     id: 'aigerim',
     name: L('Айгерим А.', 'Айгерим А.'),
-    role: L('Стоматолог-терапевт', 'Терапевт-стоматолог'),
+    role: L('Стоматолог-терапевт', 'Стоматолог-терапевт'),
     focus: L('Лечение кариеса и каналов, гигиена', 'Кариести жана каналдарды дарылоо, гигиена'),
     serviceIds: ['consultation', 'hygiene', 'caries', 'endo'],
     branchIds: ['main'],
@@ -60,7 +59,7 @@ export const mockDoctors: Doctor[] = [
   {
     id: 'elena',
     name: L('Елена М.', 'Елена М.'),
-    role: L('Стоматолог-ортопед', 'Ортопед-стоматолог'),
+    role: L('Стоматолог-ортопед', 'Стоматолог-ортопед'),
     focus: L('Коронки, виниры, коронки на имплантах', 'Коронкалар, винирлер, импланттагы коронкалар'),
     serviceIds: ['consultation', 'prosthetics', 'implant'],
     branchIds: ['main'],

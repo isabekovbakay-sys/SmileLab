@@ -17,37 +17,58 @@ interface Action {
   onPress: () => void;
 }
 
-/** Четыре быстрых действия под героем: связь с клиникой без прокрутки. */
+/**
+ * Быстрые действия под героем: связь с клиникой без прокрутки.
+ * Показываются только заданные каналы (без Telegram — три плитки, а не четыре).
+ */
 export function QuickActions() {
   const { t } = useI18n();
   const contact = useContactActions();
-  const actions: Action[] = [
-    { key: 'call', label: t.home.quickCall, a11y: t.a11y.callClinic, icon: Phone, color: 'hero', onPress: contact.call },
-    {
+  const { available } = contact;
+
+  const actions: Action[] = [];
+  if (available.call) {
+    actions.push({
+      key: 'call',
+      label: t.home.quickCall,
+      a11y: t.a11y.callClinic,
+      icon: Phone,
+      color: 'hero',
+      onPress: contact.call,
+    });
+  }
+  if (available.whatsapp) {
+    actions.push({
       key: 'whatsapp',
       label: t.home.quickWhatsApp,
       a11y: t.a11y.whatsappClinic,
       icon: WhatsAppGlyph,
       color: 'brandWhatsApp',
       onPress: () => contact.whatsapp(t.home.askMessage),
-    },
-    {
+    });
+  }
+  if (available.telegram) {
+    actions.push({
       key: 'telegram',
       label: t.home.quickTelegram,
       a11y: t.a11y.telegramClinic,
       icon: TelegramGlyph,
       color: 'brandTelegram',
       onPress: () => contact.telegram(t.home.askMessage),
-    },
-    {
+    });
+  }
+  if (available.twoGis || available.map) {
+    actions.push({
       key: 'address',
       label: t.home.quickAddress,
       a11y: t.a11y.addressClinic,
       icon: MapPin,
       color: 'hero',
-      onPress: contact.open2gis,
-    },
-  ];
+      onPress: available.twoGis ? contact.open2gis : contact.openMap,
+    });
+  }
+
+  if (actions.length === 0) return null;
 
   return (
     <View style={styles.row}>

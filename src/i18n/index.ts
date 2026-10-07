@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { clinicConfig } from '../config/clinic';
+import { demo } from '../data/demoGate';
 import { useSettings } from '../state/SettingsProvider';
 import type { Language, LocalizedText } from '../types/domain';
 import { dictionaries } from './dictionaries';
@@ -27,4 +28,10 @@ export function useI18n() {
   const { language, setLanguage } = useSettings();
   const i18n = useMemo(() => getI18n(language), [language]);
   return { ...i18n, setLanguage };
+}
+
+/** Тексты демо-режима. В релизной сборке их нет (null) — демо-модуль не попадает в бандл. */
+export function useDemoStrings() {
+  const { language } = useSettings();
+  return demo?.demoStrings[language] ?? null;
 }

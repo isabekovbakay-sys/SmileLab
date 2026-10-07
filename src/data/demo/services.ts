@@ -1,12 +1,12 @@
 import type { LocalizedText, Service } from '../../types/domain';
 
 /**
- * ДЕМО-услуги. Названия и описания типовые, цены и длительность — примеры.
- * Замените реальными перед публикацией (или отдавайте с сервера: GET /services).
+ * ДЕМО-услуги: попадают только в демо-сборку (EXPO_PUBLIC_DEMO=1).
+ * Цены и длительность — примеры. Реальные услуги — в src/data/clinic/services.ts.
  */
 const L = (ru: string, ky: string): LocalizedText => ({ ru, ky });
 
-export const mockServices: Service[] = [
+export const demoServices: Service[] = [
   {
     id: 'consultation',
     glyph: 'consultation',
@@ -72,6 +72,7 @@ export const mockServices: Service[] = [
       },
     ],
     priceFrom: 500,
+    priceAfterConsultation: false,
     durationMin: 30,
     featured: true,
     isConsultation: true,
@@ -129,6 +130,7 @@ export const mockServices: Service[] = [
       },
     ],
     priceFrom: 2500,
+    priceAfterConsultation: false,
     durationMin: 60,
     featured: true,
     isConsultation: false,
@@ -176,6 +178,7 @@ export const mockServices: Service[] = [
       },
     ],
     priceFrom: 2000,
+    priceAfterConsultation: false,
     durationMin: 60,
     featured: true,
     isConsultation: false,
@@ -184,10 +187,7 @@ export const mockServices: Service[] = [
     id: 'endo',
     glyph: 'endo',
     name: L('Лечение каналов', 'Тиш каналдарын дарылоо'),
-    summary: L(
-      'Когда болит или воспалён нерв — сохраняем зуб',
-      'Нерв ооруп же сезгенгенде — тишти сактап калабыз',
-    ),
+    summary: L('Когда болит или воспалён нерв — сохраняем зуб', 'Нерв ооруп же сезгенгенде — тишти сактап калабыз'),
     description: L(
       'Эндодонтическое лечение нужно, когда воспаление дошло до нерва. Врач очищает и пломбирует каналы, чтобы сохранить собственный зуб. Иногда требуется два визита.',
       'Сезгенүү нервге жеткенде эндодонтиялык дарылоо керек. Дарыгер өз тишиңизди сактап калуу үчүн каналдарды тазалап, пломбалайт. Кээде эки жолу келүү керек.',
@@ -218,10 +218,7 @@ export const mockServices: Service[] = [
       },
       {
         title: L('Восстановление', 'Калыбына келтирүү'),
-        text: L(
-          'Пломба или коронка, чтобы зуб служил долго.',
-          'Тиш узак кызмат кылышы үчүн пломба же коронка.',
-        ),
+        text: L('Пломба или коронка, чтобы зуб служил долго.', 'Тиш узак кызмат кылышы үчүн пломба же коронка.'),
       },
     ],
     expectations: [
@@ -239,6 +236,7 @@ export const mockServices: Service[] = [
       },
     ],
     priceFrom: 4500,
+    priceAfterConsultation: false,
     durationMin: 90,
     featured: false,
     isConsultation: false,
@@ -263,10 +261,7 @@ export const mockServices: Service[] = [
     process: [
       {
         title: L('Снимок', 'Сүрөт'),
-        text: L(
-          'Оцениваем корни, чтобы спланировать удаление.',
-          'Жулууну пландаштыруу үчүн тамырларды баалайбыз.',
-        ),
+        text: L('Оцениваем корни, чтобы спланировать удаление.', 'Жулууну пландаштыруу үчүн тамырларды баалайбыз.'),
       },
       {
         title: L('Удаление', 'Жулуу'),
@@ -277,18 +272,12 @@ export const mockServices: Service[] = [
       },
       {
         title: L('Уход', 'Кам көрүү'),
-        text: L(
-          'Рекомендации и при необходимости контрольный осмотр.',
-          'Кеңештер жана керек болсо текшерүү.',
-        ),
+        text: L('Рекомендации и при необходимости контрольный осмотр.', 'Кеңештер жана керек болсо текшерүү.'),
       },
     ],
     expectations: [
       L('2 часа после удаления не есть', 'Жулгандан кийин 2 саат тамак жебеңиз'),
-      L(
-        'В первые сутки не полоскать рот и не греть щёку',
-        'Биринчи суткада оозду чайкабаңыз жана жаакты жылытпаңыз',
-      ),
+      L('В первые сутки не полоскать рот и не греть щёку', 'Биринчи суткада оозду чайкабаңыз жана жаакты жылытпаңыз'),
     ],
     faq: [
       {
@@ -301,6 +290,7 @@ export const mockServices: Service[] = [
       },
     ],
     priceFrom: 1500,
+    priceAfterConsultation: false,
     durationMin: 30,
     featured: false,
     isConsultation: false,
@@ -354,10 +344,7 @@ export const mockServices: Service[] = [
       },
     ],
     expectations: [
-      L(
-        'После установки возможен небольшой отёк на 2–3 дня',
-        'Орноткондон кийин 2–3 күн бир аз шишик болушу мүмкүн',
-      ),
+      L('После установки возможен небольшой отёк на 2–3 дня', 'Орноткондон кийин 2–3 күн бир аз шишик болушу мүмкүн'),
       L('Нужны регулярные осмотры и гигиена', 'Үзгүлтүксүз текшерүү жана гигиена керек'),
     ],
     faq: [
@@ -379,6 +366,7 @@ export const mockServices: Service[] = [
       },
     ],
     priceFrom: 38000,
+    priceAfterConsultation: false,
     durationMin: 90,
     featured: true,
     isConsultation: false,
@@ -429,6 +417,7 @@ export const mockServices: Service[] = [
       },
     ],
     priceFrom: 12000,
+    priceAfterConsultation: false,
     durationMin: 60,
     featured: false,
     isConsultation: false,
@@ -454,10 +443,7 @@ export const mockServices: Service[] = [
       },
       {
         title: L('Установка', 'Орнотуу'),
-        text: L(
-          'Фиксация брекетов или выдача первых элайнеров.',
-          'Брекеттерди бекитүү же биринчи элайнерлерди берүү.',
-        ),
+        text: L('Фиксация брекетов или выдача первых элайнеров.', 'Брекеттерди бекитүү же биринчи элайнерлерди берүү.'),
       },
       {
         title: L('Коррекция', 'Оңдоо'),
@@ -483,6 +469,7 @@ export const mockServices: Service[] = [
       },
     ],
     priceFrom: null,
+    priceAfterConsultation: true,
     durationMin: 60,
     featured: false,
     isConsultation: false,

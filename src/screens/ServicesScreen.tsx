@@ -10,6 +10,7 @@ import { CalendarPlus } from '@/components/ui/icons';
 import { SkeletonList } from '@/components/ui/Skeleton';
 import { ErrorState } from '@/components/ui/StateViews';
 import { TabHeader } from '@/components/ui/TabHeader';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useServices } from '@/hooks/useClinicData';
 import { useI18n } from '@/i18n';
 import { useBooking } from '@/state/BookingProvider';
@@ -23,47 +24,49 @@ export default function ServicesScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <TabHeader title={t.services.title} subtitle={t.services.subtitle} />
-      <View style={styles.body}>
-        {services.status === 'ready' ? (
-          <Card padded={false}>
-            {services.data.map((service, index) => (
-              <ServiceRow
-                key={service.id}
-                testID={`service-${service.id}`}
-                service={service}
-                divider={index > 0}
-                onPress={() => router.push(`/service/${service.id}`)}
-              />
-            ))}
+      <ScreenContainer>
+        <TabHeader title={t.services.title} subtitle={t.services.subtitle} />
+        <View style={styles.body}>
+          {services.status === 'ready' ? (
+            <Card padded={false}>
+              {services.data.map((service, index) => (
+                <ServiceRow
+                  key={service.id}
+                  testID={`service-${service.id}`}
+                  service={service}
+                  divider={index > 0}
+                  onPress={() => router.push(`/service/${service.id}`)}
+                />
+              ))}
+            </Card>
+          ) : services.status === 'error' ? (
+            <ErrorState onRetry={services.reload} />
+          ) : (
+            <SkeletonList rows={6} />
+          )}
+
+          <View style={styles.section}>
+            <AppText variant="h3" accessibilityRole="header">
+              {t.contacts.payment}
+            </AppText>
+            <PaymentMethods />
+          </View>
+
+          <Card variant="tinted" style={styles.hint}>
+            <AppText variant="title">{t.home.startTitle}</AppText>
+            <AppText variant="bodySm" color="textSecondary">
+              {t.home.startText}
+            </AppText>
+            <Button
+              label={t.home.startConsult}
+              icon={CalendarPlus}
+              variant="primary"
+              size="md"
+              onPress={() => router.push(start(consultation ? { serviceId: consultation.id } : {}))}
+            />
           </Card>
-        ) : services.status === 'error' ? (
-          <ErrorState onRetry={services.reload} />
-        ) : (
-          <SkeletonList rows={6} />
-        )}
-
-        <View style={styles.section}>
-          <AppText variant="h3" accessibilityRole="header">
-            {t.contacts.payment}
-          </AppText>
-          <PaymentMethods />
         </View>
-
-        <Card variant="tinted" style={styles.hint}>
-          <AppText variant="title">{t.home.startTitle}</AppText>
-          <AppText variant="bodySm" color="textSecondary">
-            {t.home.startText}
-          </AppText>
-          <Button
-            label={t.home.startConsult}
-            icon={CalendarPlus}
-            variant="primary"
-            size="md"
-            onPress={() => router.push(start(consultation ? { serviceId: consultation.id } : {}))}
-          />
-        </Card>
-      </View>
+      </ScreenContainer>
     </ScrollView>
   );
 }
@@ -78,9 +81,6 @@ const styles = StyleSheet.create({
   body: {
     paddingHorizontal: layout.gutter,
     gap: spacing.lg,
-    width: '100%',
-    maxWidth: layout.maxContentWidth + layout.gutter * 2,
-    alignSelf: 'center',
   },
   section: {
     gap: spacing.sm,

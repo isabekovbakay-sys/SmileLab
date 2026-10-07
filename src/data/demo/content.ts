@@ -1,9 +1,9 @@
 import type { ClinicContent, LocalizedText } from '../../types/domain';
 
-/** ДЕМО-тексты клиники. Без цифр, лицензий и отзывов: доверие — через понятный процесс. */
+/** ДЕМО-тексты клиники (только демо-сборка). Без цифр, лицензий и отзывов. */
 const L = (ru: string, ky: string): LocalizedText => ({ ru, ky });
 
-export const mockClinicContent: ClinicContent = {
+export const demoContent: ClinicContent = {
   heroTitle: L('Улыбка, которой\nхочется делиться', 'Ишенимдүү\nжылмаюу үчүн'),
   heroSubtitle: L(
     'Лечение, имплантация и гигиена в Бишкеке. Понятные цены в сомах и запись за минуту.',

@@ -15,9 +15,9 @@ import { Card } from '@/components/ui/Card';
 import { CalendarPlus, Check, ClipboardList, Clock, Info, Stethoscope } from '@/components/ui/icons';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/StateViews';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { StickyFooter } from '@/components/ui/StickyFooter';
 import { TopBar } from '@/components/ui/TopBar';
-import { clinicConfig } from '@/config/clinic';
 import { useClinicContent, useDoctors, useService } from '@/hooks/useClinicData';
 import { useContactActions } from '@/hooks/useContactActions';
 import { useStatusBarStyle } from '@/hooks/useStatusBarStyle';
@@ -28,7 +28,7 @@ import { useNativeDriver } from '@/utils/animation';
 
 export default function ServiceScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t, l, language } = useI18n();
+  const { t, l, fmt, language } = useI18n();
   const insets = useSafeAreaInsets();
   const service = useService(id);
   const doctors = useDoctors();
@@ -65,8 +65,8 @@ export default function ServiceScreen() {
   const data = service.data ?? null;
   const name = data ? l(data.name) : '';
   const serviceDoctors = data ? (doctors.data ?? []).filter((d) => d.serviceIds.includes(data.id)) : [];
-  const artWords = content.data?.implantPromo.artWords[language];
-  const askChannel = clinicConfig.booking.requestChannel;
+  const artWords = content.data?.implantPromo?.artWords[language] ?? t.service.implantWords;
+  const { askChannel } = contact;
 
   return (
     <View style={styles.screen}>
@@ -77,42 +77,44 @@ export default function ServiceScreen() {
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver })}>
         <View style={[styles.hero, { paddingTop: insets.top + layout.topBarHeight + spacing.xs }]}>
           <BrandBackdrop />
-          {data ? (
-            <>
-              {data.glyph === 'implant' && artWords ? (
-                <ImplantComposition words={artWords} height={220} />
-              ) : (
-                <View style={styles.glyphTile}>
-                  <ServiceGlyph glyph={data.glyph} size={iconSize.hero} color={colors.white} accent={colors.accent} />
-                </View>
-              )}
-              <AppText variant="h1" color="textOnHero" accessibilityRole="header">
-                {name}
-              </AppText>
-              <AppText variant="body" color="textOnHeroMuted">
-                {l(data.summary)}
-              </AppText>
-            </>
-          ) : (
-            <View style={styles.heroSkeleton}>
-              <Skeleton width={72} height={72} rounded={radius.lg} />
-              <Skeleton width="85%" height={32} />
-              <Skeleton width="60%" height={18} />
-            </View>
-          )}
+          <ScreenContainer padded style={styles.heroColumn}>
+            {data ? (
+              <>
+                {data.glyph === 'implant' && artWords ? (
+                  <ImplantComposition words={artWords} height={220} />
+                ) : (
+                  <View style={styles.glyphTile}>
+                    <ServiceGlyph glyph={data.glyph} size={iconSize.hero} color={colors.white} accent={colors.accent} />
+                  </View>
+                )}
+                <AppText variant="h1" color="textOnHero" accessibilityRole="header">
+                  {name}
+                </AppText>
+                <AppText variant="body" color="textOnHeroMuted">
+                  {l(data.summary)}
+                </AppText>
+              </>
+            ) : (
+              <View style={styles.heroSkeleton}>
+                <Skeleton width={72} height={72} rounded={radius.lg} />
+                <Skeleton width="85%" height={32} />
+                <Skeleton width="60%" height={18} />
+              </View>
+            )}
+          </ScreenContainer>
         </View>
 
         {data ? (
-          <View style={styles.body}>
+          <ScreenContainer padded style={styles.body}>
             <View style={styles.facts}>
-              <Card style={styles.fact}>
-                <AppText variant="caption" color="textSecondary">
-                  {t.service.price}
-                </AppText>
-                <AppText variant="title">
-                  {data.priceFrom === null ? t.common.priceOnConsultation : t.common.priceFrom(data.priceFrom)}
-                </AppText>
-              </Card>
+              {fmt.price(data) ? (
+                <Card style={styles.fact}>
+                  <AppText variant="caption" color="textSecondary">
+                    {t.service.price}
+                  </AppText>
+                  <AppText variant="title">{fmt.price(data)}</AppText>
+                </Card>
+              ) : null}
               <Card style={styles.fact}>
                 <AppText variant="caption" color="textSecondary">
                   {t.service.duration}
@@ -216,7 +218,7 @@ export default function ServiceScreen() {
                 </AppText>
               </View>
             ) : null}
-          </View>
+          </ScreenContainer>
         ) : null}
       </Animated.ScrollView>
 
@@ -225,18 +227,16 @@ export default function ServiceScreen() {
       {data ? (
         <StickyFooter>
           <View style={styles.footerRow}>
-            <Button
-              label={t.service.ask}
-              icon={askChannel === 'whatsapp' ? WhatsAppGlyph : TelegramGlyph}
-              variant="secondary"
-              style={styles.footerAsk}
-              accessibilityLabel={t.service.askA11y(askChannel === 'whatsapp' ? 'WhatsApp' : 'Telegram')}
-              onPress={() =>
-                askChannel === 'whatsapp'
-                  ? contact.whatsapp(t.service.askMessage(name))
-                  : contact.telegram(t.service.askMessage(name))
-              }
-            />
+            {askChannel ? (
+              <Button
+                label={t.service.ask}
+                icon={askChannel === 'whatsapp' ? WhatsAppGlyph : TelegramGlyph}
+                variant="secondary"
+                style={styles.footerAsk}
+                accessibilityLabel={t.service.askA11y(askChannel === 'whatsapp' ? 'WhatsApp' : 'Telegram')}
+                onPress={() => contact.ask(t.service.askMessage(name))}
+              />
+            ) : null}
             <Button
               testID="service-book"
               label={t.service.book}
@@ -282,10 +282,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   hero: {
-    paddingHorizontal: layout.gutter,
     paddingBottom: spacing.xl,
-    gap: spacing.sm,
     overflow: 'hidden',
+  },
+  heroColumn: {
+    gap: spacing.sm,
   },
   glyphTile: {
     width: 76,
@@ -302,12 +303,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   body: {
-    paddingHorizontal: layout.gutter,
     paddingTop: spacing.lg,
     gap: spacing.xl,
-    width: '100%',
-    maxWidth: layout.maxContentWidth + layout.gutter * 2,
-    alignSelf: 'center',
   },
   facts: {
     flexDirection: 'row',

@@ -44,5 +44,7 @@ example
 
 # builds
 dist-android/
+dist-release-check/
+dist-demo/
 web-dist/
 /scratch

@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DisplayTitle } from '@/components/brand/DisplayTitle';
 import { Fade } from '@/components/brand/Fade';
-import { HeroMedia } from '@/components/brand/HeroMedia';
+import { BrandBackdrop } from '@/components/brand/BrandBackdrop';
 import { ImplantComposition } from '@/components/brand/ImplantArt';
 import { Logo } from '@/components/brand/Logo';
 import { AppointmentCard } from '@/components/domain/AppointmentCard';
@@ -18,10 +18,10 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
 import { ArrowRight, CalendarPlus, Menu, MessageCircle } from '@/components/ui/icons';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Skeleton, SkeletonList } from '@/components/ui/Skeleton';
 import { ErrorState } from '@/components/ui/StateViews';
-import { clinicConfig } from '@/config/clinic';
 import { useAppointmentGroups } from '@/hooks/useAppointmentGroups';
 import { useClinicContent, useDoctors, useServices } from '@/hooks/useClinicData';
 import { useContactActions } from '@/hooks/useContactActions';
@@ -34,7 +34,7 @@ import { layout, spacing } from '@/theme';
 
 export default function HomeScreen() {
   const { t, l, language } = useI18n();
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const content = useClinicContent();
   const services = useServices();
@@ -47,51 +47,66 @@ export default function HomeScreen() {
   useStatusBarStyle('light');
 
   const compact = height < layout.shortScreen;
+  // Альбомная ориентация (планшеты, Android 16 на экранах от 600 dp): герой ниже, текст плотнее.
+  const landscape = width > height;
+  const heroHeight = Math.min(Math.round(height * layout.heroRatio), layout.heroMaxHeight);
   const featured = services.data?.filter((s) => s.featured) ?? [];
   const consultation = services.data?.find((s) => s.isConsultation);
   const next = upcoming[0];
   const promo = content.data?.implantPromo;
+  const promoService = promo ? services.data?.find((s) => s.id === promo.serviceId) : undefined;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={[styles.hero, { minHeight: Math.round(height * layout.heroRatio) }]}>
-        <HeroMedia video={clinicConfig.media.heroVideo} />
-        <Fade distance={-8} style={[styles.heroTop, { paddingTop: insets.top + spacing.xs }]}>
-          <Logo tone="light" />
-          <IconButton icon={Menu} accessibilityLabel={t.a11y.openMenu} onPress={openMenu} variant="onHero" testID="menu-open" />
-        </Fade>
-        <View style={styles.heroBody}>
-          <Fade delay={120} fromScale={0.96} style={styles.heroText}>
-            <AppText variant="overline" color="textOnHeroMuted">
-              {t.common.clinicKind}
-            </AppText>
-            {content.data ? (
-              <DisplayTitle text={l(content.data.heroTitle)} maxSize={compact ? 36 : 42} />
-            ) : (
-              <View style={styles.titleSkeleton}>
-                <Skeleton width="80%" height={36} />
-                <Skeleton width="60%" height={36} />
-              </View>
-            )}
-            {content.data ? (
-              <AppText variant={compact ? 'bodySm' : 'body'} color="textOnHeroMuted" numberOfLines={3}>
-                {l(content.data.heroSubtitle)}
-              </AppText>
-            ) : null}
-          </Fade>
-          <Fade delay={280}>
-            <Button
-              testID="home-book"
-              label={t.common.bookVisit}
-              icon={CalendarPlus}
-              variant="accent"
-              onPress={() => router.push(start())}
+      <View style={[styles.hero, { minHeight: heroHeight }]}>
+        <BrandBackdrop />
+        <ScreenContainer style={styles.heroColumn} outerStyle={styles.heroColumn}>
+          <Fade distance={-8} style={[styles.heroTop, { paddingTop: insets.top + spacing.xs }]}>
+            <Logo tone="light" />
+            <IconButton
+              icon={Menu}
+              accessibilityLabel={t.a11y.openMenu}
+              onPress={openMenu}
+              variant="onHero"
+              testID="menu-open"
             />
           </Fade>
-        </View>
+          <View style={[styles.heroBody, landscape ? styles.heroBodyLandscape : null]}>
+            <Fade delay={120} fromScale={0.96} style={styles.heroText}>
+              <AppText variant="overline" color="textOnHeroMuted">
+                {t.common.clinicKind}
+              </AppText>
+              {content.data ? (
+                <DisplayTitle text={l(content.data.heroTitle)} maxSize={compact || landscape ? 34 : 42} />
+              ) : (
+                <View style={styles.titleSkeleton}>
+                  <Skeleton width="80%" height={36} />
+                  <Skeleton width="60%" height={36} />
+                </View>
+              )}
+              {content.data ? (
+                <AppText
+                  variant={compact || landscape ? 'bodySm' : 'body'}
+                  color="textOnHeroMuted"
+                  numberOfLines={landscape ? 2 : 3}>
+                  {l(content.data.heroSubtitle)}
+                </AppText>
+              ) : null}
+            </Fade>
+            <Fade delay={280}>
+              <Button
+                testID="home-book"
+                label={t.common.bookVisit}
+                icon={CalendarPlus}
+                variant="accent"
+                onPress={() => router.push(start())}
+              />
+            </Fade>
+          </View>
+        </ScreenContainer>
       </View>
 
-      <View style={styles.body}>
+      <ScreenContainer padded style={styles.body}>
         <QuickActions />
         <ClinicStatusLine />
         {next ? (
@@ -115,9 +130,16 @@ export default function HomeScreen() {
             actionLabel={t.home.servicesAll}
             onAction={() => router.navigate('/services')}
           />
-          {services.status === 'ready' ? (
+          {services.status === 'ready' && services.data.length === 0 ? (
+            <Card variant="tinted" style={styles.emptyServices}>
+              <AppText variant="title">{t.services.emptyTitle}</AppText>
+              <AppText variant="bodySm" color="textSecondary">
+                {t.services.emptyText}
+              </AppText>
+            </Card>
+          ) : services.status === 'ready' ? (
             <Card padded={false}>
-              {featured.map((service, index) => (
+              {(featured.length ? featured : services.data.slice(0, 4)).map((service, index) => (
                 <ServiceRow
                   key={service.id}
                   service={service}
@@ -133,7 +155,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {promo ? (
+        {promo && promoService ? (
           <Card variant="hero" style={styles.promo}>
             <ImplantComposition words={promo.artWords[language]} height={compact ? 150 : 180} />
             <AppText variant="h2" color="textOnHero">
@@ -152,24 +174,30 @@ export default function HomeScreen() {
           </Card>
         ) : null}
 
-        <View style={styles.section}>
-          <SectionHeader title={t.home.doctorsTitle} actionLabel={t.common.all} onAction={() => router.push('/about')} />
-          {doctors.status === 'ready' ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.carousel}
-              contentContainerStyle={styles.carouselContent}>
-              {doctors.data.map((doctor) => (
-                <DoctorCard key={doctor.id} doctor={doctor} onPress={() => router.push(`/doctor/${doctor.id}`)} />
-              ))}
-            </ScrollView>
-          ) : doctors.status === 'error' ? (
-            <ErrorState onRetry={doctors.reload} />
-          ) : (
-            <SkeletonList rows={2} />
-          )}
-        </View>
+        {doctors.status !== 'ready' || doctors.data.length > 0 ? (
+          <View style={styles.section}>
+            <SectionHeader
+              title={t.home.doctorsTitle}
+              actionLabel={t.common.all}
+              onAction={() => router.push('/about')}
+            />
+            {doctors.status === 'ready' ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.carousel}
+                contentContainerStyle={styles.carouselContent}>
+                {doctors.data.map((doctor) => (
+                  <DoctorCard key={doctor.id} doctor={doctor} onPress={() => router.push(`/doctor/${doctor.id}`)} />
+                ))}
+              </ScrollView>
+            ) : doctors.status === 'error' ? (
+              <ErrorState onRetry={doctors.reload} />
+            ) : (
+              <SkeletonList rows={2} />
+            )}
+          </View>
+        ) : null}
 
         <Card variant="dark" style={styles.start}>
           <AppText variant="h2" color="onPrimary">
@@ -184,14 +212,16 @@ export default function HomeScreen() {
             variant="accent"
             onPress={() => router.push(start(consultation ? { serviceId: consultation.id } : {}))}
           />
-          <Button
-            label={t.home.startAsk}
-            icon={MessageCircle}
-            variant="onHeroOutline"
-            onPress={() => contact.whatsapp(t.home.askMessage)}
-          />
+          {contact.askChannel ? (
+            <Button
+              label={t.home.startAsk}
+              icon={MessageCircle}
+              variant="onHeroOutline"
+              onPress={() => contact.ask(t.home.askMessage)}
+            />
+          ) : null}
         </Card>
-      </View>
+      </ScreenContainer>
     </ScrollView>
   );
 }
@@ -205,6 +235,9 @@ const styles = StyleSheet.create({
   },
   hero: {
     overflow: 'hidden',
+  },
+  heroColumn: {
+    flex: 1,
   },
   heroTop: {
     flexDirection: 'row',
@@ -221,6 +254,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.lg,
   },
+  heroBodyLandscape: {
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
   heroText: {
     gap: spacing.xs,
   },
@@ -229,12 +267,11 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   body: {
-    paddingHorizontal: layout.gutter,
     paddingTop: spacing.md,
     gap: spacing.md,
-    width: '100%',
-    maxWidth: layout.maxContentWidth + layout.gutter * 2,
-    alignSelf: 'center',
+  },
+  emptyServices: {
+    gap: spacing.xxs,
   },
   section: {
     gap: spacing.xxs,

@@ -54,14 +54,20 @@ export function useSubmitBooking(service: Service | undefined, doctors: Doctor[]
         contactChannel: clinicConfig.booking.requestChannel,
       });
       // Имя и телефон подставятся в следующую запись.
-      updateProfile({ name: form.name.trim(), phone: toE164(form.phone) });
+      const phone = toE164(form.phone);
+      const comment = form.comment.trim();
+      updateProfile({ name: form.name.trim(), phone });
+      update({ submitted: { appointmentId: appointment.id, phone, comment } });
       track('booking_submitted', { serviceId: service.id, anyDoctor });
       hapticSuccess();
 
       const mode = getDeliveryMode();
       if (mode === 'whatsapp' || mode === 'telegram') {
         const doctor = doctors.find((d) => d.id === appointment.doctorId);
-        await sendToMessenger(requestChannel(), appointmentMessage(i18n, 'new', appointment, service, doctor));
+        await sendToMessenger(
+          requestChannel(),
+          appointmentMessage(i18n, 'new', appointment, service, doctor, { phone, comment }),
+        );
       }
       router.push({ pathname: '/booking/success', params: { id: appointment.id } });
     } catch (error) {

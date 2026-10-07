@@ -1,7 +1,10 @@
 /**
- * Генерирует docs/privacy-policy.html (KY + RU) из тех же строк i18n и контактов конфига,
+ * Генерирует docs/privacy-policy.html (KY + RU) из тех же строк i18n и данных конфига,
  * что и экран «Политика конфиденциальности» в приложении. Запуск: npm run privacy:html
  * Файл можно опубликовать через GitHub Pages и указать ссылку в Google Play Console.
+ *
+ * Без юрлица (legal.name, legal.inn, legal.address в src/config/clinic.ts) скрипт падает:
+ * публичная политика без оператора персональных данных недействительна.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -9,17 +12,26 @@ import { dirname, resolve } from 'node:path';
 import { clinicConfig } from '../src/config/clinic';
 import { ky } from '../src/i18n/ky';
 import { ru, type Strings } from '../src/i18n/ru';
+import { privacyParams } from '../src/services/privacy';
 import { colors } from '../src/theme/colors';
-import { formatInternationalPhone } from '../src/utils/phone';
 
 const escape = (value: string) =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-const contacts = {
-  clinic: clinicConfig.name,
-  phone: formatInternationalPhone(clinicConfig.contacts.phone),
-  email: clinicConfig.contacts.email,
-};
+const contacts = privacyParams();
+if (!contacts.operator) {
+  console.error(
+    '✗ Не заполнено юрлицо: legal.name, legal.inn и legal.address в src/config/clinic.ts.\n' +
+      '  Политику без оператора персональных данных публиковать нельзя.',
+  );
+  process.exit(1);
+}
+if (!contacts.email) {
+  console.error(
+    '✗ Не указан e-mail клиники (contacts.email в src/config/clinic.ts) — он нужен для запросов по данным.',
+  );
+  process.exit(1);
+}
 
 function section(lang: 'ky' | 'ru', t: Strings): string {
   const items = t.privacy

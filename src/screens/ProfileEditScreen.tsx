@@ -8,6 +8,7 @@ import { PhoneField, TextField } from '@/components/ui/Fields';
 import { Check, Lock } from '@/components/ui/icons';
 import { StickyFooter } from '@/components/ui/StickyFooter';
 import { TopBar } from '@/components/ui/TopBar';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useI18n } from '@/i18n';
 import { useProfile } from '@/state/ProfileProvider';
 import { useToast } from '@/state/ToastProvider';
@@ -56,51 +57,53 @@ export default function ProfileEditScreen() {
     <View style={styles.screen}>
       <TopBar title={t.profile.editTitle} />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.hint}>
-            <Lock size={iconSize.md} color={colors.hero} />
-            <AppText variant="bodySm" color="textSecondary" style={styles.flex}>
-              {t.profile.editHint}
-            </AppText>
-          </View>
-          <TextField
-            label={t.booking.nameLabel}
-            placeholder={t.booking.namePlaceholder}
-            value={name}
-            onChangeText={setName}
-            autoComplete="name"
-            textContentType="name"
-            autoCapitalize="words"
-            returnKeyType="next"
-            onSubmitEditing={() => phoneRef.current?.focus()}
-            submitBehavior="submit"
-          />
-          <PhoneField
-            ref={phoneRef}
-            label={t.booking.phoneLabel}
-            value={phone}
-            onChangeNational={setPhone}
-            error={phoneError}
-            returnKeyType="next"
-            onSubmitEditing={() => emailRef.current?.focus()}
-            submitBehavior="submit"
-          />
-          <TextField
-            ref={emailRef}
-            label={t.profile.email}
-            optionalLabel={t.booking.optional}
-            placeholder={t.profile.emailPlaceholder}
-            value={email}
-            onChangeText={setEmail}
-            error={emailError}
-            keyboardType="email-address"
-            autoComplete="email"
-            textContentType="emailAddress"
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="done"
-            onSubmitEditing={save}
-          />
+        <ScrollView keyboardShouldPersistTaps="handled">
+          <ScreenContainer padded style={styles.content}>
+            <View style={styles.hint}>
+              <Lock size={iconSize.md} color={colors.hero} />
+              <AppText variant="bodySm" color="textSecondary" style={styles.flex}>
+                {t.profile.editHint}
+              </AppText>
+            </View>
+            <TextField
+              label={t.booking.nameLabel}
+              placeholder={t.booking.namePlaceholder}
+              value={name}
+              onChangeText={setName}
+              autoComplete="name"
+              textContentType="name"
+              autoCapitalize="words"
+              returnKeyType="next"
+              onSubmitEditing={() => phoneRef.current?.focus()}
+              submitBehavior="submit"
+            />
+            <PhoneField
+              ref={phoneRef}
+              label={t.booking.phoneLabel}
+              value={phone}
+              onChangeNational={setPhone}
+              error={phoneError}
+              returnKeyType="next"
+              onSubmitEditing={() => emailRef.current?.focus()}
+              submitBehavior="submit"
+            />
+            <TextField
+              ref={emailRef}
+              label={t.profile.email}
+              optionalLabel={t.booking.optional}
+              placeholder={t.profile.emailPlaceholder}
+              value={email}
+              onChangeText={setEmail}
+              error={emailError}
+              keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={save}
+            />
+          </ScreenContainer>
         </ScrollView>
         <StickyFooter>
           <Button testID="profile-save" label={t.common.save} icon={Check} onPress={save} />
@@ -119,11 +122,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: layout.gutter,
+    paddingTop: layout.gutter,
     gap: spacing.lg,
-    width: '100%',
-    maxWidth: layout.maxContentWidth + layout.gutter * 2,
-    alignSelf: 'center',
   },
   hint: {
     flexDirection: 'row',

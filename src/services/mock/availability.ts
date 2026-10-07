@@ -27,7 +27,15 @@ export interface AvailabilityContext {
   minLeadMinutes: number;
   utcOffsetMinutes: number;
   isDemo: boolean;
+  /**
+   * slots — свободное время по расписаниям врачей и записям (сервер или демо);
+   * request — «желаемое время»: часы работы клиники без перерывов, прошедшего времени
+   * и minLead. Расписание не известно, поэтому занятость не учитывается.
+   */
+  mode: ScheduleMode;
 }
+
+export type ScheduleMode = 'slots' | 'request';
 
 export interface SlotQuery {
   serviceId: string;
@@ -65,16 +73,36 @@ function busyIntervals(doctorId: string, date: LocalDate, query: SlotQuery, ctx:
   return ctx.appointments
     .filter(
       (a) =>
-        a.status !== 'cancelled' &&
-        a.doctorId === doctorId &&
-        a.date === date &&
-        a.id !== query.excludeAppointmentId,
+        a.status !== 'cancelled' && a.doctorId === doctorId && a.date === date && a.id !== query.excludeAppointmentId,
     )
     .map((a) => {
       const service = ctx.services.find((s) => s.id === a.serviceId);
       const start = toMinutes(a.time);
       return { start, end: start + roundUpToStep(service?.durationMin ?? SLOT_STEP_MINUTES) };
     });
+}
+
+/** Начала слотов (минуты), в которые услуга целиком помещается в окно и не задевает перерывы и занятое. */
+function fitStarts(
+  date: LocalDate,
+  window: Interval,
+  blocked: Interval[],
+  durationMin: number,
+  ctx: AvailabilityContext,
+  skip?: (time: ClockTime) => boolean,
+): number[] {
+  const earliest = ctx.now + ctx.minLeadMinutes * 60_000;
+  const result: number[] = [];
+  const first = Math.ceil(window.start / SLOT_STEP_MINUTES) * SLOT_STEP_MINUTES;
+  for (let start = first; start + durationMin <= window.end; start += SLOT_STEP_MINUTES) {
+    const slot = { start, end: start + durationMin };
+    if (blocked.some((b) => overlaps(slot, b))) continue;
+    const time = fromMinutes(start);
+    if (clinicTimestamp(date, time, ctx.utcOffsetMinutes) < earliest) continue;
+    if (skip?.(time)) continue;
+    result.push(start);
+  }
+  return result;
 }
 
 /** Свободное время одного врача в один день: список начал слотов (минуты). */
@@ -90,22 +118,11 @@ function doctorSlots(doctor: Doctor, date: LocalDate, durationMin: number, query
     start: Math.max(clinicHours.start, doctorHours.start),
     end: Math.min(clinicHours.end, doctorHours.end),
   };
-  const breaks = [...clinicDay.breaks, ...doctorDay.breaks].map(toInterval);
-  const busy = busyIntervals(doctor.id, date, query, ctx);
-  const earliest = ctx.now + ctx.minLeadMinutes * 60_000;
-
-  const result: number[] = [];
-  const first = Math.ceil(window.start / SLOT_STEP_MINUTES) * SLOT_STEP_MINUTES;
-  for (let start = first; start + durationMin <= window.end; start += SLOT_STEP_MINUTES) {
-    const slot = { start, end: start + durationMin };
-    if (breaks.some((b) => overlaps(slot, b))) continue;
-    if (busy.some((b) => overlaps(slot, b))) continue;
-    const time = fromMinutes(start);
-    if (clinicTimestamp(date, time, ctx.utcOffsetMinutes) < earliest) continue;
-    if (ctx.isDemo && isDemoBusy(doctor.id, date, time)) continue;
-    result.push(start);
-  }
-  return result;
+  const blocked = [
+    ...[...clinicDay.breaks, ...doctorDay.breaks].map(toInterval),
+    ...busyIntervals(doctor.id, date, query, ctx),
+  ];
+  return fitStarts(date, window, blocked, durationMin, ctx, (time) => ctx.isDemo && isDemoBusy(doctor.id, date, time));
 }
 
 export function computeDay(date: LocalDate, query: SlotQuery, ctx: AvailabilityContext): DayAvailability {
@@ -115,6 +132,14 @@ export function computeDay(date: LocalDate, query: SlotQuery, ctx: AvailabilityC
     return { date, clinicOpen: Boolean(clinicDay.hours), slots: [] };
   }
   const duration = roundUpToStep(service.durationMin);
+
+  if (ctx.mode === 'request') {
+    // Желаемое время: только часы работы клиники. Врача пациент выбирает «по возможности».
+    const starts = fitStarts(date, toInterval(clinicDay.hours), clinicDay.breaks.map(toInterval), duration, ctx);
+    const doctorIds = query.doctorId ? [query.doctorId] : [];
+    return { date, clinicOpen: true, slots: starts.map((start) => ({ time: fromMinutes(start), doctorIds })) };
+  }
+
   const byTime = new Map<number, string[]>();
   for (const doctor of candidateDoctors(query, ctx)) {
     for (const start of doctorSlots(doctor, date, duration, query, ctx)) {
@@ -139,4 +164,9 @@ export function computeAvailability(
 /** Врачи, свободные в конкретное время (повторная проверка перед записью). */
 export function freeDoctorsAt(date: LocalDate, time: ClockTime, query: SlotQuery, ctx: AvailabilityContext): string[] {
   return computeDay(date, query, ctx).slots.find((s) => s.time === time)?.doctorIds ?? [];
+}
+
+/** Время есть в сетке дня (повторная проверка перед записью в любом режиме). */
+export function isTimeAvailable(date: LocalDate, time: ClockTime, query: SlotQuery, ctx: AvailabilityContext): boolean {
+  return computeDay(date, query, ctx).slots.some((s) => s.time === time);
 }

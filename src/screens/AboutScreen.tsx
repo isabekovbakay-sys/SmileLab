@@ -12,6 +12,7 @@ import { SkeletonList } from '@/components/ui/Skeleton';
 import { ErrorState } from '@/components/ui/StateViews';
 import { StickyFooter } from '@/components/ui/StickyFooter';
 import { TopBar } from '@/components/ui/TopBar';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useClinicContent, useDoctors } from '@/hooks/useClinicData';
 import { useI18n } from '@/i18n';
 import { useBooking } from '@/state/BookingProvider';
@@ -27,70 +28,72 @@ export default function AboutScreen() {
   return (
     <View style={styles.screen}>
       <TopBar title={t.about.title} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <AppText variant="h2" accessibilityRole="header">
-          {t.about.lead}
-        </AppText>
-
-        <View style={styles.section}>
-          <AppText variant="h3" accessibilityRole="header">
-            {t.about.principlesTitle}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <ScreenContainer padded style={styles.content}>
+          <AppText variant="h2" accessibilityRole="header">
+            {t.about.lead}
           </AppText>
-          {content.status === 'ready' ? (
-            <View style={styles.principles}>
-              {content.data.principles.map((principle, index) => (
-                <Card key={principle.id} style={styles.principle}>
-                  <View style={styles.number}>
-                    <AppText variant="title" color="hero">
-                      {index + 1}
-                    </AppText>
-                  </View>
-                  <View style={styles.flex}>
-                    <AppText variant="title">{l(principle.title)}</AppText>
-                    <AppText variant="bodySm" color="textSecondary">
-                      {l(principle.text)}
-                    </AppText>
-                  </View>
-                </Card>
-              ))}
-            </View>
-          ) : content.status === 'error' ? (
-            <ErrorState onRetry={content.reload} />
-          ) : (
-            <SkeletonList rows={3} withIcon={false} />
-          )}
-        </View>
 
-        <View style={styles.section}>
-          <AppText variant="h3" accessibilityRole="header">
-            {t.about.doctorsTitle}
-          </AppText>
-          {doctors.status === 'ready' ? (
-            <Card padded={false}>
-              {doctors.data.map((doctor, index) => (
-                <DoctorRow
-                  key={doctor.id}
-                  doctor={doctor}
-                  divider={index > 0}
-                  onPress={() => router.push(`/doctor/${doctor.id}`)}
-                />
-              ))}
-            </Card>
-          ) : doctors.status === 'error' ? (
-            <ErrorState onRetry={doctors.reload} />
-          ) : (
-            <SkeletonList rows={3} />
-          )}
-        </View>
+          <View style={styles.section}>
+            <AppText variant="h3" accessibilityRole="header">
+              {t.about.principlesTitle}
+            </AppText>
+            {content.status === 'ready' ? (
+              <View style={styles.principles}>
+                {content.data.principles.map((principle, index) => (
+                  <Card key={principle.id} style={styles.principle}>
+                    <View style={styles.number}>
+                      <AppText variant="title" color="hero">
+                        {index + 1}
+                      </AppText>
+                    </View>
+                    <View style={styles.flex}>
+                      <AppText variant="title">{l(principle.title)}</AppText>
+                      <AppText variant="bodySm" color="textSecondary">
+                        {l(principle.text)}
+                      </AppText>
+                    </View>
+                  </Card>
+                ))}
+              </View>
+            ) : content.status === 'error' ? (
+              <ErrorState onRetry={content.reload} />
+            ) : (
+              <SkeletonList rows={3} withIcon={false} />
+            )}
+          </View>
 
-        <View style={styles.section}>
-          <AppText variant="h3" accessibilityRole="header">
-            {t.about.hoursTitle}
-          </AppText>
-          <HoursTable />
-        </View>
+          <View style={styles.section}>
+            <AppText variant="h3" accessibilityRole="header">
+              {t.about.doctorsTitle}
+            </AppText>
+            {doctors.status === 'ready' ? (
+              <Card padded={false}>
+                {doctors.data.map((doctor, index) => (
+                  <DoctorRow
+                    key={doctor.id}
+                    doctor={doctor}
+                    divider={index > 0}
+                    onPress={() => router.push(`/doctor/${doctor.id}`)}
+                  />
+                ))}
+              </Card>
+            ) : doctors.status === 'error' ? (
+              <ErrorState onRetry={doctors.reload} />
+            ) : (
+              <SkeletonList rows={3} />
+            )}
+          </View>
 
-        <DemoNotice compact />
+          <View style={styles.section}>
+            <AppText variant="h3" accessibilityRole="header">
+              {t.about.hoursTitle}
+            </AppText>
+            <HoursTable />
+          </View>
+
+          <DemoNotice compact />
+        </ScreenContainer>
       </ScrollView>
       <StickyFooter>
         <Button label={t.common.bookVisit} icon={CalendarPlus} variant="accent" onPress={() => router.push(start())} />
@@ -109,12 +112,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   content: {
-    padding: layout.gutter,
+    paddingTop: layout.gutter,
     paddingBottom: spacing.xxl,
     gap: spacing.xl,
-    width: '100%',
-    maxWidth: layout.maxContentWidth + layout.gutter * 2,
-    alignSelf: 'center',
   },
   section: {
     gap: spacing.sm,

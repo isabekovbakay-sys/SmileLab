@@ -17,10 +17,12 @@ interface DateStripProps {
   selected: LocalDate | null;
   today: LocalDate;
   onSelect: (date: LocalDate) => void;
+  /** Режим «желаемое время»: день — рабочий или нет, без «мест нет». */
+  wanted?: boolean;
 }
 
 /** Лента дней: выходные неактивны, точка — есть свободное время. */
-export function DateStrip({ days, selected, today, onSelect }: DateStripProps) {
+export function DateStrip({ days, selected, today, onSelect, wanted = false }: DateStripProps) {
   const { t, fmt } = useI18n();
   const scrollRef = useRef<ScrollView>(null);
   const selectedIndex = days.findIndex((d) => d.date === selected);
@@ -42,7 +44,7 @@ export function DateStrip({ days, selected, today, onSelect }: DateStripProps) {
         const hasSlots = day.slots.length > 0;
         const disabled = !day.clinicOpen;
         const label = fmt.dayChipLabel(day.date, today);
-        const state = disabled ? 'closed' : hasSlots ? 'available' : 'full';
+        const state = disabled ? 'closed' : hasSlots ? (wanted ? 'workday' : 'available') : wanted ? 'passed' : 'full';
         return (
           <PressableScale
             key={day.date}
@@ -66,10 +68,7 @@ export function DateStrip({ days, selected, today, onSelect }: DateStripProps) {
               {dayOfMonth(day.date)}
             </AppText>
             <View
-              style={[
-                styles.dot,
-                hasSlots ? (isSelected ? styles.dotOnSelected : styles.dotActive) : styles.dotHidden,
-              ]}
+              style={[styles.dot, hasSlots ? (isSelected ? styles.dotOnSelected : styles.dotActive) : styles.dotHidden]}
             />
           </PressableScale>
         );

@@ -6,6 +6,7 @@ import { ClinicStatusLine } from '@/components/domain/ClinicStatusLine';
 import { DemoNotice } from '@/components/domain/DemoNotice';
 import { AppText } from '@/components/ui/AppText';
 import { TopBar } from '@/components/ui/TopBar';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useI18n } from '@/i18n';
 import { colors, layout, spacing } from '@/theme';
 
@@ -14,19 +15,21 @@ export default function ContactScreen() {
   return (
     <View style={styles.screen}>
       <TopBar title={t.contacts.title} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ContactList />
-        <Section title={t.contacts.address}>
-          <AddressBlock />
-        </Section>
-        <Section title={t.contacts.hours}>
-          <ClinicStatusLine />
-          <HoursTable />
-        </Section>
-        <Section title={t.contacts.payment}>
-          <PaymentMethods />
-        </Section>
-        <DemoNotice compact />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <ScreenContainer padded style={styles.content}>
+          <ContactList />
+          <Section title={t.contacts.address}>
+            <AddressBlock />
+          </Section>
+          <Section title={t.contacts.hours}>
+            <ClinicStatusLine />
+            <HoursTable />
+          </Section>
+          <Section title={t.contacts.payment}>
+            <PaymentMethods />
+          </Section>
+          <DemoNotice compact />
+        </ScreenContainer>
       </ScrollView>
     </View>
   );
@@ -49,12 +52,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: layout.gutter,
+    paddingTop: layout.gutter,
     paddingBottom: spacing.xxl,
     gap: spacing.xl,
-    width: '100%',
-    maxWidth: layout.maxContentWidth + layout.gutter * 2,
-    alignSelf: 'center',
   },
   section: {
     gap: spacing.sm,

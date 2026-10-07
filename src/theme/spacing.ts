@@ -22,7 +22,10 @@ export const layout = {
   topBarHeight: 56,
   buttonHeight: 56,
   buttonHeightCompact: 48,
+  /** Максимальная ширина контента на планшетах и в альбомной ориентации. */
   maxContentWidth: 560,
+  /** Предел высоты героя главной. */
+  heroMaxHeight: 520,
   /** Высота героя главной — доля от высоты экрана. */
   heroRatio: 0.6,
   shortScreen: 720,

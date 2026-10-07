@@ -6,6 +6,7 @@ import { AppText } from '@/components/ui/AppText';
 import { ConfirmSheet } from '@/components/ui/BottomSheet';
 import { IconButton } from '@/components/ui/IconButton';
 import { CalendarX, ChevronLeft, X } from '@/components/ui/icons';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { StickyFooter } from '@/components/ui/StickyFooter';
 import { useI18n } from '@/i18n';
 import { colors, layout, radius, spacing } from '@/theme';
@@ -26,7 +27,15 @@ interface BookingScaffoldProps {
   children: ReactNode;
 }
 
-export function BookingScaffold({ title, subtitle, step, confirmClose, onBack, footer, children }: BookingScaffoldProps) {
+export function BookingScaffold({
+  title,
+  subtitle,
+  step,
+  confirmClose,
+  onBack,
+  footer,
+  children,
+}: BookingScaffoldProps) {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { closeFlow } = useBookingNavigation();
@@ -39,7 +48,7 @@ export function BookingScaffold({ title, subtitle, step, confirmClose, onBack, f
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <ScreenContainer style={[styles.header, { paddingTop: insets.top }]} outerStyle={styles.headerOuter}>
         <View style={styles.headerRow}>
           <View style={styles.side}>
             {onBack ? <IconButton icon={ChevronLeft} accessibilityLabel={t.a11y.back} onPress={onBack} /> : null}
@@ -52,7 +61,12 @@ export function BookingScaffold({ title, subtitle, step, confirmClose, onBack, f
             ) : null}
           </View>
           <View style={[styles.side, styles.sideRight]}>
-            <IconButton icon={X} accessibilityLabel={t.booking.closeA11y} onPress={requestClose} testID="booking-close" />
+            <IconButton
+              icon={X}
+              accessibilityLabel={t.booking.closeA11y}
+              onPress={requestClose}
+              testID="booking-close"
+            />
           </View>
         </View>
         {step ? (
@@ -64,25 +78,23 @@ export function BookingScaffold({ title, subtitle, step, confirmClose, onBack, f
             <View style={[styles.progressFill, { width: `${(step.current / step.total) * 100}%` }]} />
           </View>
         ) : null}
-      </View>
+      </ScreenContainer>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.titleBlock}>
-            <AppText variant="h1" accessibilityRole="header">
-              {title}
-            </AppText>
-            {subtitle ? (
-              <AppText variant="body" color="textSecondary">
-                {subtitle}
+        <ScrollView style={styles.flex} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScreenContainer style={styles.content}>
+            <View style={styles.titleBlock}>
+              <AppText variant="h1" accessibilityRole="header">
+                {title}
               </AppText>
-            ) : null}
-          </View>
-          {children}
+              {subtitle ? (
+                <AppText variant="body" color="textSecondary">
+                  {subtitle}
+                </AppText>
+              ) : null}
+            </View>
+            {children}
+          </ScreenContainer>
         </ScrollView>
         {footer ? <StickyFooter>{footer}</StickyFooter> : null}
       </KeyboardAvoidingView>
@@ -113,8 +125,10 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  header: {
+  headerOuter: {
     backgroundColor: colors.background,
+  },
+  header: {
     paddingHorizontal: spacing.xs,
     paddingBottom: spacing.xs,
   },
@@ -149,9 +163,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xxl,
     gap: spacing.lg,
-    width: '100%',
-    maxWidth: layout.maxContentWidth,
-    alignSelf: 'center',
   },
   titleBlock: {
     paddingHorizontal: layout.gutter,

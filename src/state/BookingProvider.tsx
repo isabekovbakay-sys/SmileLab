@@ -24,6 +24,11 @@ export interface BookingDraft {
   slotDoctorIds: string[];
   /** Растёт, когда слот оказался занят: экран времени перезапрашивает свободное время. */
   slotsNonce: number;
+  /**
+   * Последняя отправленная заявка: телефон и комментарий живут только в памяти, чтобы
+   * повторно открыть мессенджер с экрана успеха. На телефоне в записи они не хранятся.
+   */
+  submitted: { appointmentId: string; phone: string; comment: string } | null;
 }
 
 export interface StartBookingOptions {
@@ -49,6 +54,7 @@ const EMPTY_DRAFT: BookingDraft = {
   time: null,
   slotDoctorIds: [],
   slotsNonce: 0,
+  submitted: null,
 };
 
 interface BookingContextValue {

@@ -4,12 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, layout, spacing } from '@/theme';
 
+import { ScreenContainer } from './ScreenContainer';
+
 /** Закреплённые внизу кнопки: главное действие не нужно искать прокруткой. */
 export function StickyFooter({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.sm) + spacing.xs }, style]}>
-      <View style={styles.inner}>{children}</View>
+      <ScreenContainer style={styles.inner}>{children}</ScreenContainer>
     </View>
   );
 }
@@ -23,9 +25,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.gutter,
   },
   inner: {
-    width: '100%',
-    maxWidth: layout.maxContentWidth,
-    alignSelf: 'center',
     gap: spacing.xs,
   },
 });

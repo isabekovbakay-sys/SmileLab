@@ -1,19 +1,23 @@
-import { getBranch, clinicConfig } from '../../config/clinic';
-import { mockClinicContent } from '../../data/mock/clinicContent';
-import { mockDoctors } from '../../data/mock/doctors';
-import { mockServices } from '../../data/mock/services';
+import { clinicConfig, getBranch } from '../../config/clinic';
+import { catalog } from '../../data/catalog';
 import type { Appointment, AppointmentRequest } from '../../types/domain';
 import { toClinicIso } from '../../utils/datetime';
-import { getJSON, setJSON, removeKeys, storageKeys } from '../storage';
+import { getScheduleMode } from '../bookingDelivery';
+import { getJSON, removeKeys, setJSON, storageKeys } from '../storage';
 import {
-  SlotUnavailableError,
   NotFoundError,
+  SlotUnavailableError,
   type AvailabilityQuery,
   type RescheduleInput,
   type Repositories,
 } from '../types';
-import { computeAvailability, freeDoctorsAt, type AvailabilityContext } from './availability';
-import { sanitizeAppointments } from './sanitize';
+import { computeAvailability, freeDoctorsAt, isTimeAvailable, type AvailabilityContext } from './availability';
+import { hasLegacyPersonalFields, sanitizeAppointments, toStoredAppointment } from './sanitize';
+
+/**
+ * Работа без сервера: каталог клиники (src/data/clinic или демо — по сборке),
+ * записи на телефоне (без телефона пациента и комментария).
+ */
 
 /** Искусственная задержка, чтобы видеть скелетоны и проверять состояния загрузки. */
 const LATENCY_MS = 350;
@@ -27,42 +31,57 @@ function createId(): string {
 
 export function createMockRepositories(): Repositories {
   let cache: Appointment[] | null = null;
+  const { services, doctors, content } = catalog;
 
   async function loadAppointments(): Promise<Appointment[]> {
-    if (!cache) cache = sanitizeAppointments(await getJSON<unknown>(storageKeys.appointments, []));
+    if (!cache) {
+      const raw = await getJSON<unknown>(storageKeys.appointments, []);
+      cache = sanitizeAppointments(raw);
+      // Старые версии хранили телефон и комментарий — переписываем без них.
+      if (hasLegacyPersonalFields(raw)) await setJSON(storageKeys.appointments, cache);
+    }
     return cache;
   }
 
   async function saveAppointments(list: Appointment[]): Promise<void> {
-    cache = list;
-    await setJSON(storageKeys.appointments, list);
+    cache = list.map(toStoredAppointment);
+    await setJSON(storageKeys.appointments, cache);
   }
 
   async function context(branchId: string): Promise<AvailabilityContext> {
     return {
-      services: mockServices,
-      doctors: mockDoctors,
+      services,
+      doctors,
       branch: getBranch(branchId),
       appointments: await loadAppointments(),
       now: Date.now(),
       minLeadMinutes: clinicConfig.booking.minLeadMinutes,
       utcOffsetMinutes: clinicConfig.utcOffsetMinutes,
       isDemo: clinicConfig.isDemo,
+      mode: getScheduleMode(),
     };
   }
 
-  /** Повторная проверка слота. При «любом враче» возвращает назначенного врача. */
+  /**
+   * Повторная проверка времени перед записью. Возвращает врача, за которым закреплено время:
+   * в режиме «свободное время» при «любом враче» — первого свободного; в режиме «желаемое время» —
+   * выбранного пациентом (по возможности) или пустую строку.
+   */
   async function claimSlot(
     input: { serviceId: string; branchId: string; date: string; time: string; doctorId: string; anyDoctor?: boolean },
     excludeAppointmentId?: string,
   ): Promise<string> {
     const ctx = await context(input.branchId);
-    const free = freeDoctorsAt(
-      input.date,
-      input.time,
-      { serviceId: input.serviceId, doctorId: input.anyDoctor ? null : input.doctorId, excludeAppointmentId },
-      ctx,
-    );
+    const query = {
+      serviceId: input.serviceId,
+      doctorId: input.anyDoctor ? null : input.doctorId,
+      excludeAppointmentId,
+    };
+    if (ctx.mode === 'request') {
+      if (!isTimeAvailable(input.date, input.time, query, ctx)) throw new SlotUnavailableError();
+      return input.anyDoctor ? '' : input.doctorId;
+    }
+    const free = freeDoctorsAt(input.date, input.time, query, ctx);
     if (free.length === 0) throw new SlotUnavailableError();
     if (!input.anyDoctor) return input.doctorId;
     return free.includes(input.doctorId) ? input.doctorId : free[0]!;
@@ -72,23 +91,23 @@ export function createMockRepositories(): Repositories {
     clinic: {
       async listServices() {
         await delay();
-        return mockServices;
+        return services;
       },
       async getService(id) {
         await delay();
-        return mockServices.find((s) => s.id === id) ?? null;
+        return services.find((s) => s.id === id) ?? null;
       },
       async listDoctors() {
         await delay();
-        return mockDoctors;
+        return doctors;
       },
       async getDoctor(id) {
         await delay();
-        return mockDoctors.find((d) => d.id === id) ?? null;
+        return doctors.find((d) => d.id === id) ?? null;
       },
       async getContent() {
         await delay();
-        return mockClinicContent;
+        return content;
       },
     },
 
@@ -109,8 +128,10 @@ export function createMockRepositories(): Repositories {
         await delay();
         const doctorId = await claimSlot(request);
         const now = new Date().toISOString();
+        const { patient, comment: _comment, ...rest } = request;
         const appointment: Appointment = {
-          ...request,
+          ...rest,
+          patient: { name: patient.name },
           doctorId,
           id: createId(),
           status: 'requested',

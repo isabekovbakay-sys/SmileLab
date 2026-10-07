@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { ArrowRight, CalendarPlus, Phone, X } from '@/components/ui/icons';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useContactActions } from '@/hooks/useContactActions';
 import { restoreStatusBar } from '@/hooks/useStatusBarStyle';
 import { usePresence } from '@/hooks/usePresence';
@@ -58,7 +59,13 @@ export function MenuOverlay() {
   };
 
   return (
-    <Modal transparent visible animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={close}>
+    <Modal
+      transparent
+      visible
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={close}>
       <Animated.View
         accessibilityViewIsModal
         style={[
@@ -69,29 +76,37 @@ export function MenuOverlay() {
           },
         ]}>
         <BrandBackdrop variant="deep" />
-        <View style={[styles.top, { paddingTop: insets.top + spacing.xs }]}>
+        <ScreenContainer style={[styles.top, { paddingTop: insets.top + spacing.xs }]}>
           <Logo tone="light" />
-          <IconButton icon={X} accessibilityLabel={t.a11y.closeMenu} onPress={close} variant="onHero" testID="menu-close" />
-        </View>
+          <IconButton
+            icon={X}
+            accessibilityLabel={t.a11y.closeMenu}
+            onPress={close}
+            variant="onHero"
+            testID="menu-close"
+          />
+        </ScreenContainer>
 
-        <ScrollView style={styles.flex} contentContainerStyle={styles.items} showsVerticalScrollIndicator={false}>
-          {items.map((item) => (
-            <PressableScale
-              key={item.label}
-              onPress={() => go(item.href)}
-              accessibilityRole="link"
-              accessibilityLabel={item.label}
-              scaleTo={0.98}
-              style={[styles.item, compact ? styles.itemCompact : null]}>
-              <AppText variant={compact ? 'h3' : 'h2'} color="textOnHero" style={styles.flex}>
-                {item.label}
-              </AppText>
-              <ArrowRight size={iconSize.md} color={colors.textOnHeroMuted} />
-            </PressableScale>
-          ))}
+        <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
+          <ScreenContainer padded style={styles.items}>
+            {items.map((item) => (
+              <PressableScale
+                key={item.label}
+                onPress={() => go(item.href)}
+                accessibilityRole="link"
+                accessibilityLabel={item.label}
+                scaleTo={0.98}
+                style={[styles.item, compact ? styles.itemCompact : null]}>
+                <AppText variant={compact ? 'h3' : 'h2'} color="textOnHero" style={styles.flex}>
+                  {item.label}
+                </AppText>
+                <ArrowRight size={iconSize.md} color={colors.textOnHeroMuted} />
+              </PressableScale>
+            ))}
+          </ScreenContainer>
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
+        <ScreenContainer padded style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
           <View style={styles.languageRow}>
             <AppText variant="overline" color="textOnHeroMuted">
               {t.menu.language}
@@ -127,15 +142,17 @@ export function MenuOverlay() {
               router.push(start());
             }}
           />
-          <Button
-            label={contact.phoneLabel}
-            icon={Phone}
-            variant="onHeroOutline"
-            size="md"
-            accessibilityLabel={`${t.a11y.callClinic}, ${contact.phoneLabel}`}
-            onPress={contact.call}
-          />
-        </View>
+          {contact.available.call ? (
+            <Button
+              label={contact.phoneLabel}
+              icon={Phone}
+              variant="onHeroOutline"
+              size="md"
+              accessibilityLabel={`${t.a11y.callClinic}, ${contact.phoneLabel}`}
+              onPress={contact.call}
+            />
+          ) : null}
+        </ScreenContainer>
       </Animated.View>
     </Modal>
   );
@@ -158,7 +175,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   items: {
-    paddingHorizontal: layout.gutter,
     paddingTop: spacing.xs,
   },
   item: {
@@ -173,7 +189,6 @@ const styles = StyleSheet.create({
     minHeight: layout.touch + spacing.xxs,
   },
   footer: {
-    paddingHorizontal: layout.gutter,
     paddingTop: spacing.md,
     gap: spacing.sm,
   },
