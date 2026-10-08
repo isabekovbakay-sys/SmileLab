@@ -1,0 +1,143 @@
+name: Android APK
+
+# Собирает релизный APK (без демо, EXPO_PUBLIC_DEMO=0) и публикует его в Releases.
+# Подпись — отладочным ключом сборки (у GitHub нет ключа клиники). Для Google Play и постоянной
+# подписи ключом клиники — EAS: bash scripts/build-apk.sh apk|production.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'claude/**']
+    tags: ['v*']
+
+# Публикация APK в GitHub Releases.
+permissions:
+  contents: write
+
+# Сборки одной ветки идут по очереди и не отменяют друг друга
+# (иначе перезапуск старого запуска обрывает свежую сборку).
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Пакет «tools» убран из новых cmdline-tools — указываем список явно.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Проверки (типы, линтер, тесты)
+        run: npm run check
+
+      - name: Данные клиники заполнены (release-check)
+        run: npm run release:check
+
+      - name: В релизном бандле нет демо-данных
+        run: npm run bundle:check
+
+      - name: Нативный проект Android
+        run: npx expo prebuild --platform android --clean --no-install
+        env:
+          EXPO_PUBLIC_DEMO: '0'
+
+      - name: Сборка APK (release)
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+        env:
+          EXPO_PUBLIC_DEMO: '0'
+
+      - name: Разрешения в APK — только INTERNET и VIBRATE
+        run: |
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          "$AAPT2" dump permissions "$APK" | tee permissions.txt
+          EXTRA=$(grep -oE "name='[^']+'" permissions.txt | grep -vE "INTERNET|VIBRATE|DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" || true)
+          if [ -n "$EXTRA" ]; then echo "Лишние разрешения: $EXTRA"; exit 1; fi
+          "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > manifest.txt
+          if grep -qE "FullscreenPlayerActivity|expo.modules.updates" manifest.txt; then
+            echo "В манифесте остались видеоплеер или expo-updates"; exit 1
+          fi
+          cp "$APK" SmileLab.apk
+          SIZE=$(du -b SmileLab.apk | cut -f1)
+          echo "Размер APK: $SIZE байт ($(awk "BEGIN {printf \"%.1f\", $SIZE/1048576}") МБ)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # Запуск на эмуляторе ДО публикации: APK, который падает при старте, не попадёт в Releases.
+      # Эмулятор — x86_64, а публикуемый APK только для ARM (телефоны): React Native не загружает
+      # ARM-библиотеки через трансляцию. Поэтому для эмулятора собирается тот же APK под x86_64:
+      # тот же JS-бандл, R8 и манифест, другие только нативные библиотеки.
+      - name: Тот же APK под x86_64 (только для эмулятора)
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+          cp app/build/outputs/apk/release/app-release.apk ../SmileLab-emulator.apk
+        env:
+          EXPO_PUBLIC_DEMO: '0'
+
+      - name: KVM для эмулятора
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Smoke-тест на эмуляторе Android 16 (телефон и планшет)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: python3 scripts/android-smoke-test.py SmileLab-emulator.apk smoke
+
+      - name: Скриншоты smoke-теста
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test
+          path: smoke
+          if-no-files-found: ignore
+
+      - name: Выгрузка APK (артефакт запуска)
+        uses: actions/upload-artifact@v4
+        with:
+          name: smilelab-apk
+          path: SmileLab.apk
+          if-no-files-found: error
+
+      # Постоянная ссылка на последнюю сборку:
+      # https://github.com/<owner>/<repo>/releases/latest/download/SmileLab.apk
+      - name: Публикация в GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: SmileLab 1.0.0 (сборка ${{ github.run_number }})
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: SmileLab.apk
+          body: |
+            SmileLab 1.0.0 — рабочая версия (не демо): услуги и цены клиники, врачи, часы работы, запись с выбором желаемого времени и заявкой в WhatsApp.
+            Проверено перед публикацией: типы, линтер, тесты, данные клиники, отсутствие демо в бандле, разрешения (только INTERNET и VIBRATE), запуск на эмуляторе Android 16 (телефон и планшет).
+            Подпись: ключ сборки GitHub (не для Google Play). Для Google Play — AAB через EAS (npm run build:aab).
+            Ветка: ${{ github.ref_name }}, коммит: ${{ github.sha }}.
+            Установка: откройте файл на телефоне → разрешите установку из этого источника → если Play Защита предупредит, «Подробнее → Всё равно установить».
