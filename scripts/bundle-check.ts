@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { demoCatalog, demoStrings } from '../src/data/demo';
+import { demoStrings } from '../src/data/demo';
 
 const root = resolve(__dirname, '..');
 // --demo: проверить саму проверку — в демо-бандле строки должны найтись.
@@ -39,11 +39,11 @@ function jsFiles(dir: string): string[] {
   });
 }
 
-// Уникальные для демо строки: имена демо-врачей и демо-плашка на обоих языках.
-const markers = [
-  ...demoCatalog.doctors.flatMap((d) => [d.name.ru, d.name.ky]),
-  ...(['ru', 'ky'] as const).flatMap((lang) => [demoStrings[lang].notice, demoStrings[lang].successTitle]),
-];
+// Уникальные для демо строки: тексты демо-режима на обоих языках (кнопки совпадают с обычными).
+const markers = (['ru', 'ky'] as const).flatMap((lang) => [
+  demoStrings[lang].notice,
+  demoStrings[lang].successText('WhatsApp'),
+]);
 
 // Минификатор записывает кириллицу как \uXXXX — ищем оба вида.
 const escapeUnicode = (text: string) =>

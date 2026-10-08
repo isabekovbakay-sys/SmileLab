@@ -22,6 +22,7 @@ const NOW = Date.UTC(2026, 9, 4, 6, 0);
 const MONDAY = '2026-10-05';
 // Демо-часы: будни 09–19, обед 13–14, суббота 10–16, воскресенье — выходной.
 const branch = { ...getBranch(), workingHours: demoWorkingHours };
+const off = { hours: null, breaks: [] };
 
 function ctx(overrides: Partial<AvailabilityContext> = {}): AvailabilityContext {
   return {
@@ -235,7 +236,9 @@ describe('«желаемое время» (заявка в WhatsApp/Telegram б�
   it('без часов работы — дни закрыты, сетки нет', () => {
     const days = computeAvailability(
       { serviceId: 'consultation', doctorId: null, fromDate: MONDAY, days: 7 },
-      request({ branch: getBranch() }),
+      request({
+        branch: { ...branch, workingHours: { mon: off, tue: off, wed: off, thu: off, fri: off, sat: off, sun: off } },
+      }),
     );
     assert.ok(days.every((d) => !d.clinicOpen && d.slots.length === 0));
   });

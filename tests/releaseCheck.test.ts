@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { releaseProblems } from '../scripts/releaseRules';
+import { releaseProblems, releaseReport } from '../scripts/releaseRules';
 import { clinicConfig, type ClinicConfig } from '../src/config/clinic';
 import { clinicDoctors } from '../src/data/clinic/doctors';
 import { clinicServices } from '../src/data/clinic/services';
@@ -10,6 +10,7 @@ import { demoWorkingHours } from '../src/data/demo/schedule';
 import { demoServices } from '../src/data/demo/services';
 
 const branch = clinicConfig.branches[0]!;
+const off = { hours: null, breaks: [] };
 
 /** Заполненный конфиг — только для теста. Реальные данные вписывает владелец. */
 const filled: ClinicConfig = {
@@ -25,16 +26,34 @@ const filled: ClinicConfig = {
 };
 
 describe('release-check', () => {
-  it('на текущих (пустых) данных падает с понятными ошибками', () => {
-    const problems = releaseProblems({ config: clinicConfig, services: clinicServices, doctors: clinicDoctors });
+  it('на пустых данных падает с понятными ошибками', () => {
+    const empty: ClinicConfig = {
+      ...clinicConfig,
+      branches: [
+        {
+          ...branch,
+          address: { ...branch.address, street: null, building: null },
+          workingHours: { mon: off, tue: off, wed: off, thu: off, fri: off, sat: off, sun: off },
+        },
+      ],
+    };
+    const problems = releaseProblems({ config: empty, services: [], doctors: [], store: true });
     const text = problems.join('\n');
-    assert.ok(problems.length > 0);
     for (const expected of ['юрлицо', 'ИНН', 'юридический адрес', 'улица и дом', 'часы работы', 'услуги', 'врача']) {
       assert.ok(text.includes(expected), `нет ошибки про «${expected}»`);
     }
     // Телефон и e-mail заданы — про них ошибок нет.
     assert.ok(!text.includes('телефон клиники'));
     assert.ok(!text.includes('e-mail'));
+  });
+
+  it('текущие данные: APK можно собирать, для Google Play не хватает юрлица', () => {
+    const input = { config: clinicConfig, services: clinicServices, doctors: clinicDoctors };
+    const apk = releaseReport(input);
+    assert.deepEqual(apk.problems, []);
+    assert.ok(apk.warnings.some((w) => w.includes('юрлицо')));
+    const store = releaseReport({ ...input, store: true });
+    assert.ok(store.problems.some((p) => p.includes('юрлицо')));
   });
 
   it('на заполненных данных проходит', () => {

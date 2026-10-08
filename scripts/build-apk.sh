@@ -28,7 +28,11 @@ if [[ "$PROFILE" == "demo" ]]; then
   echo ""
 else
   echo "→ Проверка данных клиники (release-check)"
-  EXPO_PUBLIC_DEMO=0 npm run release:check
+  if [[ "$PROFILE" == "production" ]]; then
+    EXPO_PUBLIC_DEMO=0 npm run release:check -- --store
+  else
+    EXPO_PUBLIC_DEMO=0 npm run release:check
+  fi
 fi
 
 if ! npx eas-cli@latest whoami >/dev/null 2>&1; then

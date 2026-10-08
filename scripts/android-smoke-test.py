@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Smoke-тест APK на эмуляторе (CI): приложение запускается, показывает выбор языка,
-главную и первый шаг записи, без падений. Ловит то, что не видно в тестах логики:
+Smoke-тест APK на эмуляторе Android 16 (CI): приложение запускается, показывает выбор языка,
+главную и первый шаг записи, затем то же на экране планшета (1280×800 dp), без падений. Ловит то, что не видно в тестах логики:
 ошибки R8, отсутствующие нативные модули, падение JS при старте.
 
 Запуск: python3 scripts/android-smoke-test.py SmileLab-emulator.apk smoke-artifacts
@@ -83,9 +83,27 @@ wait_text('Какая услуга нужна?', 60)
 time.sleep(2)
 screen('3-booking-service')
 
+# Android 16 на планшете: экран 1280×800 dp, система игнорирует блокировку портрета.
+adb('shell', 'wm', 'size', '2560x1600')
+adb('shell', 'wm', 'density', '320')
+adb('shell', 'am', 'force-stop', PKG)
+adb('shell', 'am', 'start', '-W', '-n', f'{PKG}/.MainActivity')
+tablet_book = wait_text('Записаться на приём', 90)
+time.sleep(2)
+screen('4-tablet-landscape')
+x1, y1, x2, y2 = map(int, re.findall(r'\d+', tablet_book.get('bounds')))
+if not (0 <= x1 < x2 <= 2560 and 0 <= y1 < y2 <= 1600):
+    fail(f'на планшете кнопка записи за пределами экрана: {tablet_book.get("bounds")}')
+tap(tablet_book)
+wait_text('Какая услуга нужна?', 60)
+time.sleep(2)
+screen('5-tablet-booking')
+adb('shell', 'wm', 'size', 'reset')
+adb('shell', 'wm', 'density', 'reset')
+
 log = adb('logcat', '-d', check=False).stdout
 (OUT / 'logcat.txt').write_text(log)
 crashes = [l for l in log.splitlines() if re.search(r'FATAL EXCEPTION|Cannot find native module', l)]
 if crashes or not alive():
     fail('ошибки в logcat: ' + ' | '.join(crashes[:5]))
-print('✓ Smoke-тест: запуск, выбор языка, главная, первый шаг записи — без падений')
+print('✓ Smoke-тест: запуск, выбор языка, главная, запись; планшет 1280×800 dp — без падений')

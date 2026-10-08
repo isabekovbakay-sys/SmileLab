@@ -91,7 +91,7 @@ export const ky: Strings = {
     callClinic: 'Клиникага чалуу',
     whatsappClinic: 'WhatsApp аркылуу жазуу',
     telegramClinic: 'Telegram аркылуу жазуу',
-    emailClinic: 'Почтага жазуу',
+    emailClinic: 'Электрондук почтага жазуу',
     addressClinic: 'Клиниканын дарегин картадан ачуу',
     logo: 'SmileLab',
     stepProgress: (step: number, total: number) => `Кадам ${step} / ${total}`,
@@ -103,7 +103,7 @@ export const ky: Strings = {
           : state === 'full'
             ? `${label}, орун жок`
             : state === 'passed'
-              ? `${label}, бул күнгө убакыт өтүп кетти`
+              ? `${label}, бул күнгө жазылуу убактысы өтүп кетти`
               : `${label}, клиника иштебейт`,
     slot: (time: string) => `Убакыт ${time}`,
     upcomingDot: 'алдыда жазылуу бар',
@@ -159,7 +159,7 @@ export const ky: Strings = {
 
   services: {
     title: 'Кызматтар жана баалар',
-    subtitle: 'Баалардын эң төмөнкүсү көрсөтүлгөн. Так баасын дарыгер карап чыккандан кийин айтат.',
+    subtitle: 'Баштапкы баалар көрсөтүлгөн. Так баасын дарыгер карап чыккандан кийин айтат.',
     emptyTitle: 'Кызматтардын тизмеси жакында чыгат',
     emptyText: 'Бизге чалыңыз же жазыңыз — баалар тууралуу айтып, ыңгайлуу убакытка жазып коёбуз.',
   },
@@ -203,13 +203,13 @@ export const ky: Strings = {
     anyFreeDoctor: 'Бош болгон каалаган дарыгер',
     morning: 'Эртең менен',
     afternoon: 'Күндүз',
-    evening: 'Кечинде',
+    evening: 'Кечкурун',
     noSlotsDay: 'Бул күнү бош убакыт жок.',
-    noTimeLeft: 'Бул күнгө убакыт өтүп кетти.',
+    noTimeLeft: 'Бул күнгө жазылуу убактысы өтүп кетти.',
     slotsFree: 'Бош убакыт',
     slotsWanted: 'Кааланган убакыт',
     wantedNote: (channel: string) => `Администратор убакытты ырастайт же ${channel} аркылуу башка убакыт сунуштайт.`,
-    doctorOptional: 'Дарыгер — мүмкүн болсо',
+    doctorOptional: 'Дарыгер — мүмкүнчүлүккө жараша',
     nearestWorkday: (label: string) => `Эң жакынкы иш күнү — ${label}`,
     noWorkingHours: 'Иштөө убактысы азырынча көрсөтүлгөн эмес. Чалыңыз — ыңгайлуу убакыт таап беребиз.',
     dayClosed: 'Бул күнү клиника иштебейт.',
@@ -243,9 +243,9 @@ export const ky: Strings = {
       nameEmpty: 'Атыңызды жазыңыз',
       nameShort: 'Аты өтө кыска',
       phoneEmpty: 'Телефон номериңизди жазыңыз',
-      phoneIncomplete: '+996 кийин 9 сан болушу керек',
-      phoneInvalidPrefix: '+996 кийин номер 0 же 1 менен башталбайт',
-      emailInvalid: 'Почтанын дарегин текшериңиз',
+      phoneIncomplete: '+996дан кийин 9 сан болушу керек',
+      phoneInvalidPrefix: '+996дан кийинки номер 0 же 1 менен башталбашы керек',
+      emailInvalid: 'Электрондук почтанын дарегин текшериңиз',
     },
     slotTaken: 'Бул убакыт жаңы эле ээленип калды. Башка убакытты тандаңыз.',
     submitError: 'Арызды жөнөтүү мүмкүн болгон жок. Кайра аракет кылыңыз.',
@@ -294,7 +294,7 @@ export const ky: Strings = {
     contact: 'Клиника менен байланышуу',
     bookAgain: 'Кайра жазылуу',
     cancelTitle: 'Жазылууну жокко чыгарасызбы?',
-    cancelText: (label: string) => `${label} убактысына жазылуу жокко чыгарылат.`,
+    cancelText: (label: string) => `Жазылуу жокко чыгарылат: ${label}.`,
     cancelConfirm: 'Жокко чыгаруу',
     cancelKeep: 'Калтыруу',
     cancelled: 'Жазылуу жокко чыгарылды',
@@ -323,7 +323,7 @@ export const ky: Strings = {
     footer: 'SmileLab тиркемесинен жөнөтүлдү',
     wantedTime: 'Кааланган убакыт',
     newWantedTime: 'Жаңы кааланган убакыт',
-    doctorPreferred: 'Дарыгер (мүмкүн болсо)',
+    doctorPreferred: 'Дарыгер (мүмкүнчүлүккө жараша)',
   },
 
   profile: {
@@ -354,7 +354,7 @@ export const ky: Strings = {
     call: 'Чалуу',
     whatsapp: 'WhatsApp',
     telegram: 'Telegram',
-    email: 'Почта',
+    email: 'Электрондук почта',
     address: 'Дарек',
     addressUnknown: 'Так даректи администратордон тактаңыз',
     open2gis: '2ГИСте ачуу',
@@ -425,7 +425,7 @@ export const ky: Strings = {
         },
         {
           title: 'Жарнама жана трекерлер',
-          body: 'Тиркемеде жарнама, бөтөн аналитика жана трекерлер жок.',
+          body: 'Тиркемеде жарнама, үчүнчү тараптын аналитикасы жана трекерлер жок.',
         },
         {
           title: 'Уруксаттар',

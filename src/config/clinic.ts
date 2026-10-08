@@ -1,4 +1,3 @@
-import { demo } from '../data/demoGate';
 import type { Branch, Language, WeeklySchedule } from '../types/domain';
 
 /**
@@ -18,21 +17,21 @@ import type { Branch, Language, WeeklySchedule } from '../types/domain';
 const isDemo = process.env.EXPO_PUBLIC_DEMO === '1';
 
 const closed = { hours: null, breaks: [] };
+const weekday = { hours: { start: '09:00', end: '19:00' }, breaks: [{ start: '13:00', end: '14:00' }] };
 
 /**
- * ЧАСЫ РАБОТЫ — время клиники (Бишкек, UTC+6), 24 часа.
+ * ЧАСЫ РАБОТЫ — время клиники (Бишкек, UTC+6), 24 часа. Утверждены владельцем 08.10.2026.
  * Рабочий день: { hours: { start: '09:00', end: '19:00' }, breaks: [{ start: '13:00', end: '14:00' }] }
  * Выходной:     { hours: null, breaks: [] }
- * Пока все дни выходные, приложение пишет «Часы работы уточняйте у администратора»,
- * а вместо выбора времени предлагает позвонить.
+ * По этим часам строится выбор «желаемого времени» при записи.
  */
 const workingHours: WeeklySchedule = {
-  mon: closed,
-  tue: closed,
-  wed: closed,
-  thu: closed,
-  fri: closed,
-  sat: closed,
+  mon: weekday,
+  tue: weekday,
+  wed: weekday,
+  thu: weekday,
+  fri: weekday,
+  sat: { hours: { start: '10:00', end: '16:00' }, breaks: [] },
   sun: closed,
 };
 
@@ -42,12 +41,14 @@ const branches: Branch[] = [
     name: { ru: 'SmileLab', ky: 'SmileLab' },
     address: {
       cityId: 'bishkek',
+      // ВНИМАНИЕ: адрес задан владельцем как временный (08.10.2026) — замените точным адресом клиники
+      // до раздачи приложения пациентам: по нему кнопки «Адрес» и 2ГИС ведут пациента.
       // Район: { ru: 'Октябрьский район', ky: 'Октябрь району' } или null.
-      district: null,
+      district: { ru: 'Первомайский район', ky: 'Биринчи май району' },
       // Улица: { ru: 'ул. Токтогула', ky: 'Токтогул көчөсү' }. Без улицы и дома кнопки карт скрыты.
-      street: null,
+      street: { ru: 'ул. Токтогула', ky: 'Токтогул көчөсү' },
       // Дом: '100' или '100/1'.
-      building: null,
+      building: '125',
       // Ориентир: { ru: 'напротив ЦУМа', ky: 'ЦУМдун каршысында' } или null.
       landmark: null,
     },
@@ -55,7 +56,7 @@ const branches: Branch[] = [
     coordinates: null,
     // Ссылка на карточку клиники в 2ГИС: откройте клинику в 2ГИС → «Поделиться» → скопируйте ссылку.
     twoGisUrl: null,
-    workingHours: demo?.demoWorkingHours ?? workingHours,
+    workingHours,
   },
 ];
 

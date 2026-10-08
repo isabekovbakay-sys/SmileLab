@@ -71,8 +71,10 @@ describe('данные клиники', () => {
     assert.ok(demoCatalog.services.some((s) => s.priceFrom === null && s.priceAfterConsultation));
   });
 
-  it('реальный каталог корректен (пока пустой — ничего не выдумано)', () => {
+  it('реальный каталог корректен', () => {
     validateCatalog({ services: clinicServices, doctors: clinicDoctors, content: clinicContent });
+    assert.ok(clinicServices.length > 0 && clinicDoctors.length > 0);
+    assert.equal(clinicServices.filter((s) => s.isConsultation).length, 1);
   });
 
   it('без EXPO_PUBLIC_DEMO=1 приложение берёт реальный каталог, а не демо', () => {
@@ -91,15 +93,19 @@ describe('данные клиники', () => {
     }
   });
 
-  it('контакты клиники в конфиге не тронуты, неизвестное — пусто', () => {
+  it('контакты клиники в конфиге не тронуты; координат и юрлица без данных от клиники нет', () => {
     assert.equal(clinicConfig.contacts.phone, '+996507597099');
     assert.equal(clinicConfig.contacts.whatsapp, '+996507597099');
     assert.equal(clinicConfig.contacts.telegram.phone, '+996507597099');
     assert.equal(clinicConfig.contacts.email, 'isabekovbakay@gmail.com');
     const branch = clinicConfig.branches[0]!;
+    assert.ok(branch.address.street && branch.address.building, 'адрес заполнен');
+    assert.ok(
+      Object.values(branch.workingHours).some((d) => d.hours),
+      'часы заполнены',
+    );
     assert.equal(branch.coordinates, null);
     assert.equal(branch.twoGisUrl, null);
-    assert.equal(branch.address.street, null);
     assert.deepEqual(clinicConfig.legal, { name: null, inn: null, address: null });
   });
 });

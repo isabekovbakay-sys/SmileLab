@@ -10,6 +10,16 @@ export interface ReleaseInput {
   config: ClinicConfig;
   services: Service[];
   doctors: Doctor[];
+  /**
+   * Сборка для Google Play: юрлицо (оператор персональных данных) обязательно — без него
+   * Play не примет политику конфиденциальности. Для APK по ссылке — только предупреждение.
+   */
+  store?: boolean;
+}
+
+export interface ReleaseReport {
+  problems: string[];
+  warnings: string[];
 }
 
 const CONFIG = 'src/config/clinic.ts';
@@ -18,9 +28,15 @@ const DOCTORS = 'src/data/clinic/doctors.ts';
 
 const filled = (value: string | null | undefined) => Boolean(value?.trim());
 
-export function releaseProblems({ config, services, doctors }: ReleaseInput): string[] {
+export function releaseProblems(input: ReleaseInput): string[] {
+  return releaseReport(input).problems;
+}
+
+export function releaseReport({ config, services, doctors, store = false }: ReleaseInput): ReleaseReport {
   const problems: string[] = [];
+  const warnings: string[] = [];
   const { contacts, legal } = config;
+  const legalIssues: string[] = [];
 
   if (!hasPhone(contacts.phone)) problems.push(`Не указан телефон клиники (contacts.phone в ${CONFIG}).`);
   if (!filled(contacts.email)) problems.push(`Не указан e-mail клиники (contacts.email в ${CONFIG}).`);
@@ -37,13 +53,14 @@ export function releaseProblems({ config, services, doctors }: ReleaseInput): st
     }
   }
 
-  if (!filled(legal.name)) problems.push(`Не указано юрлицо — название ОсОО или ИП (legal.name в ${CONFIG}).`);
+  if (!filled(legal.name)) legalIssues.push(`Не указано юрлицо — название ОсОО или ИП (legal.name в ${CONFIG}).`);
   if (!filled(legal.inn)) {
-    problems.push(`Не указан ИНН юрлица (legal.inn в ${CONFIG}).`);
+    legalIssues.push(`Не указан ИНН юрлица (legal.inn в ${CONFIG}).`);
   } else if (!/^\d{14}$/.test(legal.inn!.trim())) {
     problems.push(`ИНН должен состоять из 14 цифр (legal.inn в ${CONFIG}).`);
   }
-  if (!filled(legal.address)) problems.push(`Не указан юридический адрес (legal.address в ${CONFIG}).`);
+  if (!filled(legal.address)) legalIssues.push(`Не указан юридический адрес (legal.address в ${CONFIG}).`);
+  (store ? problems : warnings).push(...legalIssues);
 
   if (config.branches.length === 0) problems.push(`Нет ни одного филиала (branches в ${CONFIG}).`);
   for (const branch of config.branches) {
@@ -87,5 +104,5 @@ export function releaseProblems({ config, services, doctors }: ReleaseInput): st
     }
   }
 
-  return problems;
+  return { problems, warnings };
 }

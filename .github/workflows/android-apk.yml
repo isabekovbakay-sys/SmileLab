@@ -1,7 +1,8 @@
 name: Android APK
 
-# Собирает ДЕМО-APK (EXPO_PUBLIC_DEMO=1, отладочный ключ) — показать приложение владельцу.
-# Релиз для пациентов и Google Play собирается только через EAS: bash scripts/build-apk.sh apk|production.
+# Собирает релизный APK (без демо, EXPO_PUBLIC_DEMO=0) и публикует его в Releases.
+# Подпись — отладочным ключом сборки (у GitHub нет ключа клиники). Для Google Play и постоянной
+# подписи ключом клиники — EAS: bash scripts/build-apk.sh apk|production.
 
 on:
   workflow_dispatch:
@@ -49,19 +50,22 @@ jobs:
       - name: Проверки (типы, линтер, тесты)
         run: npm run check
 
+      - name: Данные клиники заполнены (release-check)
+        run: npm run release:check
+
       - name: В релизном бандле нет демо-данных
         run: npm run bundle:check
 
       - name: Нативный проект Android
         run: npx expo prebuild --platform android --clean --no-install
         env:
-          EXPO_PUBLIC_DEMO: '1'
+          EXPO_PUBLIC_DEMO: '0'
 
-      - name: Сборка демо-APK
+      - name: Сборка APK (release)
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
         env:
-          EXPO_PUBLIC_DEMO: '1'
+          EXPO_PUBLIC_DEMO: '0'
 
       - name: Разрешения в APK — только INTERNET и VIBRATE
         run: |
@@ -88,7 +92,7 @@ jobs:
           ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
           cp app/build/outputs/apk/release/app-release.apk ../SmileLab-emulator.apk
         env:
-          EXPO_PUBLIC_DEMO: '1'
+          EXPO_PUBLIC_DEMO: '0'
 
       - name: KVM для эмулятора
         run: |
@@ -96,10 +100,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Smoke-тест на эмуляторе (запуск, выбор языка, главная, запись)
+      - name: Smoke-тест на эмуляторе Android 16 (телефон и планшет)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 36
           target: google_apis
           arch: x86_64
           disable-animations: true
@@ -127,13 +131,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
-          name: SmileLab ДЕМО (сборка ${{ github.run_number }}) — отладочный ключ, не для пациентов
+          name: SmileLab 1.0.0 (сборка ${{ github.run_number }})
           target_commitish: ${{ github.sha }}
           make_latest: true
           files: SmileLab.apk
           body: |
-            ДЕМО-сборка SmileLab: примерные услуги, цены, врачи и часы работы, плашка «Демо».
-            Подписана отладочным ключом — только для показа, не для пациентов и не для Google Play.
-            Релиз собирается через EAS (bash scripts/build-apk.sh apk|production) после заполнения src/config/clinic.ts.
+            SmileLab 1.0.0 — рабочая версия (не демо): услуги и цены клиники, врачи, часы работы, запись с выбором желаемого времени и заявкой в WhatsApp.
+            Проверено перед публикацией: типы, линтер, тесты, данные клиники, отсутствие демо в бандле, разрешения (только INTERNET и VIBRATE), запуск на эмуляторе Android 16 (телефон и планшет).
+            Подпись: ключ сборки GitHub (не для Google Play). Для Google Play — AAB через EAS (npm run build:aab).
             Ветка: ${{ github.ref_name }}, коммит: ${{ github.sha }}.
             Установка: откройте файл на телефоне → разрешите установку из этого источника → если Play Защита предупредит, «Подробнее → Всё равно установить».

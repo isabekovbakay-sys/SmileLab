@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { getBranch } from '../src/config/clinic';
 import { demoWorkingHours } from '../src/data/demo/schedule';
 import { computeClinicStatus } from '../src/utils/clinicStatus';
 
@@ -35,9 +34,17 @@ describe('статус клиники', () => {
     });
   });
   it('часы не заполнены — статус неизвестен, без выдуманного «откроемся»', () => {
-    assert.deepEqual(computeClinicStatus(getBranch().workingHours, at(2026, 9, 30, 10), 360), {
-      kind: 'closed',
-      opens: null,
-    });
+    const off = { hours: null, breaks: [] };
+    assert.deepEqual(
+      computeClinicStatus(
+        { mon: off, tue: off, wed: off, thu: off, fri: off, sat: off, sun: off },
+        at(2026, 9, 30, 10),
+        360,
+      ),
+      {
+        kind: 'closed',
+        opens: null,
+      },
+    );
   });
 });

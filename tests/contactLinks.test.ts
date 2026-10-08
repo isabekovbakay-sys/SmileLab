@@ -17,7 +17,14 @@ import {
 import type { Branch, LocalizedText } from '../src/types/domain';
 
 const ru = (text: LocalizedText) => text.ru;
-const empty = getBranch();
+// Филиал без адреса — как в конфиге, пока владелец его не заполнил.
+const base = getBranch();
+const empty: Branch = {
+  ...base,
+  address: { ...base.address, district: null, street: null, building: null, landmark: null },
+  coordinates: null,
+  twoGisUrl: null,
+};
 const withAddress: Branch = {
   ...empty,
   address: { ...empty.address, street: { ru: 'ул. Токтогула', ky: 'Токтогул көчөсү' }, building: '100' },
